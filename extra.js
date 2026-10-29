@@ -2,49 +2,92 @@
 // Lecteur de musique du site (avec volume), badge « en ce moment » (Last.fm), pages Profil musical et Avoir tes stats.
 
 // ---------- Lecteur : enchaîne les extraits du top titres, volume partagé avec le récap et les extraits ----------
+// La musique démarre toute seule ; si le navigateur bloque la lecture automatique, elle part au premier clic ou à la première touche.
+const VOL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path class="w1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5"/><path class="w2" d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/><path class="x" d="m16 10 5 5m0-5-5 5"/></svg>';
 const Player = {
-  volume: 0.5, audio: null, list: [], i: 0, on: false, misses: 0,
+  volume: 0.5, lastVol: 0.5, audio: null, list: [], i: 0, on: false, blocked: false, misses: 0, cur: null, offGesture: null,
   init() {
     try { const v = localStorage.getItem('vol'); if (v != null && !isNaN(+v)) this.volume = +v; } catch { }
-    this.syncSliders();
+    if (this.volume > 0) this.lastVol = this.volume;
+    this.decorate();
     document.addEventListener('input', e => { if (e.target.matches('.vol input')) this.setVolume(e.target.value / 100); });
-    $('#player-btn').addEventListener('click', () => (this.on ? this.pause() : this.play()));
+    document.addEventListener('click', e => { if (e.target.closest('.vol-ic')) this.toggleMute(); });
+    $('#player-btn').addEventListener('click', () => (this.blocked ? this.resume() : this.on ? this.pause(true) : this.play(true)));
+    let want = true;
+    try { want = localStorage.getItem('music') !== 'off'; } catch { }
+    if (want) this.play();
   },
-  syncSliders() { document.querySelectorAll('.vol input').forEach(i => { i.value = Math.round(this.volume * 100); }); },
+  // Ajoute l'icône haut-parleur (clic = couper / remettre le son) devant chaque slider de volume
+  decorate() {
+    document.querySelectorAll('.vol').forEach(v => {
+      if (!v.querySelector('.vol-ic')) v.insertAdjacentHTML('afterbegin', `<button type="button" class="vol-ic">${VOL_ICON}</button>`);
+    });
+    this.syncSliders();
+  },
+  syncSliders() {
+    const p = Math.round(this.volume * 100), level = p === 0 ? 0 : p < 50 ? 1 : 2;
+    document.querySelectorAll('.vol input').forEach(i => { i.value = p; i.style.setProperty('--p', p + '%'); });
+    document.querySelectorAll('.vol').forEach(v => { v.dataset.level = level; });
+    document.querySelectorAll('.vol-ic').forEach(b => b.setAttribute('aria-label', p ? 'Couper le son' : 'Remettre le son'));
+  },
+  toggleMute() { this.setVolume(this.volume > 0 ? 0 : this.lastVol || 0.5); },
   setVolume(v) {
     this.volume = v;
+    if (v > 0) this.lastVol = v;
     try { localStorage.setItem('vol', String(v)); } catch { }
     if (this.audio) this.audio.volume = v;
     if (typeof listenAudio !== 'undefined' && listenAudio) listenAudio.volume = v;
     Sound.applyVolume();
     this.syncSliders();
   },
-  async play() {
+  async play(byUser) {
+    if (byUser) try { localStorage.setItem('music', 'on'); } catch { }
+    if (!this.audio) { this.audio = new Audio(); this.audio.addEventListener('ended', () => this.next()); }
+    stopListen();
+    this.on = true; this.misses = 0;
     if (!this.list.length) {
       const o = await (STATIC ? fetchJson(`data/${META.defaultYear}/overview.json`) : fetch(`/api/overview?year=${META.defaultYear}`).then(r => r.json()));
       this.list = o.topTracks.map(t => ({ uri: t.key, name: t.name, artist: t.artist }));
     }
-    if (!this.audio) { this.audio = new Audio(); this.audio.addEventListener('ended', () => this.next()); }
-    stopListen();
-    this.on = true; this.misses = 0;
-    this.load();
+    if (this.on) this.load();
   },
   async load() {
-    const t = this.list[this.i % this.list.length];
-    this.ui(t);
+    const t = this.cur = this.list[this.i % this.list.length];
+    this.ui();
     const src = await previewSrc(t.uri);
     if (!this.on) return;
     if (!src) return ++this.misses < this.list.length ? this.next() : this.pause();
     this.audio.src = src; this.audio.volume = this.volume;
-    this.audio.play().catch(() => this.pause());
+    this.audio.play().then(() => this.ui(), e => (e.name === 'NotAllowedError' ? this.waitGesture() : this.pause()));
+  },
+  // Lecture automatique refusée par le navigateur : on attend la première interaction avec la page
+  waitGesture() {
+    this.blocked = true; this.ui();
+    const evs = ['click', 'keydown', 'touchend'];
+    const go = e => { if (e.target.closest?.('#player')) return; this.offGesture?.(); if (this.on && this.blocked) this.resume(); };
+    this.offGesture = () => { evs.forEach(n => document.removeEventListener(n, go)); this.offGesture = null; };
+    evs.forEach(n => document.addEventListener(n, go));
+  },
+  resume() {
+    this.offGesture?.();
+    this.blocked = false; this.on = true;
+    this.audio.play().then(() => this.ui(), () => this.pause());
   },
   next() { this.i++; if (this.on) this.load(); },
-  pause() { this.on = false; if (this.audio) this.audio.pause(); this.ui(); },
-  ui(t) {
-    const b = $('#player-btn');
-    b.textContent = this.on ? '❚❚' : '▶';
-    b.setAttribute('aria-label', this.on ? 'Mettre la musique en pause' : 'Lancer la musique du site');
-    $('#player-now').textContent = this.on && t ? `${t.name} · ${t.artist}` : 'Musique du site';
+  pause(byUser) {
+    if (byUser) try { localStorage.setItem('music', 'off'); } catch { }
+    this.offGesture?.();
+    this.on = false; this.blocked = false;
+    if (this.audio) this.audio.pause();
+    this.ui();
+  },
+  ui() {
+    const b = $('#player-btn'), t = this.cur, playing = this.on && !this.blocked;
+    b.textContent = playing ? '❚❚' : '▶';
+    b.setAttribute('aria-label', playing ? 'Mettre la musique en pause' : 'Lancer la musique du site');
+    $('#player').classList.toggle('playing', playing);
+    $('#player').classList.toggle('waiting', this.blocked);
+    $('#player-now').textContent = this.blocked ? 'Clique n’importe où pour la musique ♪' : playing && t ? `${t.name} · ${t.artist}` : 'Musique du site';
   },
 };
 

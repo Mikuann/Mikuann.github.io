@@ -51,9 +51,37 @@ select, input[type="search"] { font: inherit; color: var(--fg); background: var(
 .player-btn:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
 .player-now { font-size: 12px; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player .cov { width: 26px; height: 26px; border-radius: 5px; }
-.vol { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
-input[type="range"] { accent-color: var(--violet); width: 90px; cursor: pointer; }
-@media (max-width: 520px) { .player-now { display: none; } }
+.player.playing .player-now { color: var(--fg); }
+.player.waiting .player-btn { animation: nudge 1.2s ease-in-out infinite; box-shadow: 0 0 0 4px color-mix(in srgb, var(--violet) 30%, transparent); }
+/* Petit égaliseur animé pendant la lecture */
+.eq { display: none; align-items: flex-end; gap: 2px; height: 12px; flex: none; }
+.eq i { width: 3px; height: 100%; border-radius: 2px; background: linear-gradient(var(--pink), var(--violet)); transform-origin: bottom; animation: eq 0.9s ease-in-out infinite; }
+.eq i:nth-child(2) { animation-delay: -.3s; animation-duration: .7s; }
+.eq i:nth-child(3) { animation-delay: -.6s; animation-duration: 1.1s; }
+.player.playing .eq { display: flex; }
+@keyframes eq { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+
+/* Volume : icône haut-parleur + slider dégradé */
+.vol { display: flex; align-items: center; gap: 2px; color: var(--fg); }
+.vol-ic { all: unset; cursor: pointer; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; flex: none; color: var(--fg); transition: background .15s; }
+.vol-ic:hover { background: rgba(255, 255, 255, .08); }
+.vol-ic:focus-visible { outline: 2px solid var(--violet); outline-offset: 1px; }
+.vol-ic svg { width: 18px; height: 18px; overflow: visible; }
+.vol-ic path { transition: opacity .2s; }
+.vol[data-level="0"] .w1, .vol[data-level="0"] .w2, .vol[data-level="1"] .w2, .vol:not([data-level="0"]) .x { opacity: 0; }
+.vol[data-level="0"] .vol-ic { color: var(--muted); }
+.vol input[type="range"] { --p: 50%; -webkit-appearance: none; appearance: none; background: transparent; width: 92px; height: 22px; margin: 0; cursor: pointer; }
+.vol input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(90deg, var(--violet), var(--pink)) 0 0 / var(--p) 100% no-repeat, rgba(255, 255, 255, .13); }
+.vol input[type="range"]::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .13); }
+.vol input[type="range"]::-moz-range-progress { height: 6px; border-radius: 999px; background: linear-gradient(90deg, var(--violet), var(--pink)); }
+.vol input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -4px; border-radius: 50%; background: #f4eefa; border: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--pink) 30%, transparent), 0 2px 6px rgba(0, 0, 0, .45); transition: transform .15s, box-shadow .15s; }
+.vol input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #f4eefa; border: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--pink) 30%, transparent), 0 2px 6px rgba(0, 0, 0, .45); transition: transform .15s, box-shadow .15s; }
+.vol input[type="range"]:hover::-webkit-slider-thumb, .vol input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.2); box-shadow: 0 0 0 5px color-mix(in srgb, var(--pink) 35%, transparent), 0 2px 8px rgba(0, 0, 0, .5); }
+.vol input[type="range"]:hover::-moz-range-thumb, .vol input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); box-shadow: 0 0 0 5px color-mix(in srgb, var(--pink) 35%, transparent), 0 2px 8px rgba(0, 0, 0, .5); }
+.vol input[type="range"]:focus-visible { outline: none; }
+.vol input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--violet); }
+.vol input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--violet); }
+@media (max-width: 520px) { .player-now { display: none; } .vol input[type="range"] { width: 72px; } }
 
 main { padding-block: 28px 48px; display: flex; flex-direction: column; gap: 22px; }
 .loading, .empty { color: var(--muted); }

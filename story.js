@@ -205,13 +205,14 @@ async function openStory() {
   storyEl.setAttribute('role', 'dialog');
   storyEl.setAttribute('aria-label', 'Récap de ton année');
   storyEl.innerHTML = `<div class="story-bars">${slides.map(() => '<span><i></i></span>').join('')}</div>
-    <div class="story-top"><span>${esc(OWNER)} · ${isAll() ? 'tout l’historique' : YEAR}</span><span class="story-btns"><label class="vol"><span>Vol.</span><input type="range" min="0" max="100" aria-label="Volume du récap"></label><button type="button" class="story-btn snd"></button><button type="button" class="story-x" aria-label="Fermer le récap">×</button></span></div>
+    <div class="story-top"><span>${esc(OWNER)} · ${isAll() ? 'tout l’historique' : YEAR}</span><span class="story-btns"><div class="vol"><input type="range" min="0" max="100" aria-label="Volume du récap"></div><button type="button" class="story-btn snd"></button><button type="button" class="story-x" aria-label="Fermer le récap">×</button></span></div>
     <div class="story-stage"><div class="s-backdrop"></div><div class="story-blob"></div><div class="story-blob"></div><canvas class="story-fx" aria-hidden="true"></canvas><div class="story-nav prev"></div><div class="story-nav next"></div><div class="story-slide" aria-live="polite"></div></div>
     <div class="story-hint">Clic ou flèches pour naviguer · Espace pour pause · M pour couper le son · Échap pour fermer</div>`;
   document.body.appendChild(storyEl);
   document.body.style.overflow = 'hidden';
   if (typeof stopListen === 'function') stopListen();
-  Player.pause(); Player.syncSliders();
+  const playerWasOn = Player.on;
+  Player.pause(); Player.decorate();
   const slideEl = $('.story-slide', storyEl), barEls = [...storyEl.querySelectorAll('.story-bars span')], blobs = storyEl.querySelectorAll('.story-blob');
   const sndBtn = $('.snd', storyEl);
   Sound.onState = () => { sndBtn.textContent = Sound.blocked ? '♪ Activer le son' : Sound.muted ? '♪ Remettre le son' : '♪ Couper le son'; sndBtn.classList.toggle('hot', Sound.blocked); };
@@ -245,6 +246,7 @@ async function openStory() {
     storyEl.remove(); storyEl = null;
     document.body.style.overflow = '';
     if (location.hash === '#/recap') history.replaceState(null, '', '#/');
+    if (playerWasOn) Player.play();
   }
   function togglePause() { const p = storyEl.classList.toggle('paused'); Sound.pause(p); }
   function onKey(e) {
