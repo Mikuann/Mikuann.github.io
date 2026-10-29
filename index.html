@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Les stats Spotify de Mikuan</title>
+<meta name="description" content="Toutes les statistiques d'écoute Spotify de Mikuan : artistes, titres, habitudes, âge musical et récap de l'année.">
+<link rel="icon" href="img/avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#/"><img id="brand-av" class="brand-av" alt="" data-optional><span><span id="brand-name">Mikuan</span><small>stats Spotify</small></span></a>
+    <div class="top-tools">
+      <div class="player" id="player">
+        <button type="button" class="player-btn" id="player-btn" aria-label="Lancer la musique du site">▶</button>
+        <span class="player-now" id="player-now">Musique du site</span>
+        <label class="vol"><span>Vol.</span><input type="range" id="vol" min="0" max="100" value="50" aria-label="Volume de la musique"></label>
+      </div>
+      <label class="year">
+        <span>Année</span>
+        <select id="year" aria-label="Année affichée"></select>
+      </label>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <a href="#/" data-tab="">Vue d'ensemble</a>
+    <a href="#/profil" data-tab="profil">Profil musical</a>
+    <a href="#/mois" data-tab="mois">Mois</a>
+    <a href="#/artistes" data-tab="artistes">Artistes</a>
+    <a href="#/titres" data-tab="titres">Titres</a>
+    <a href="#/albums" data-tab="albums">Albums</a>
+    <a href="#/habitudes" data-tab="habitudes">Habitudes</a>
+    <a href="#/decouvertes" data-tab="decouvertes">Découvertes</a>
+    <a href="#/tuto" data-tab="tuto">Avoir tes stats</a>
+  </nav>
+</header>
+<main id="main" class="wrap"><p class="loading">Chargement…</p></main>
+<footer class="wrap foot" id="foot"></footer>
+<div id="tip" class="tip" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>window.STATIC_SITE = true;</script>
+<script src="config.js"></script>
+<script src="charts.js"></script>
+<script src="extra.js"></script>
+<script src="story.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
