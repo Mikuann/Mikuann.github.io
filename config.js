@@ -12,7 +12,7 @@ window.SITE_CONFIG = {
   bestofPoster: 'video/bestof.jpg',
   overviewBanner: 'video/banniere.mp4', // bannière vidéo de la vue d'ensemble, quand on descend
   overviewBannerPoster: 'video/banniere.jpg',
-  bestofGames: 'Minecraft, Roblox, VRChat, ARC Raiders',
+  bestofGames: 'VRChat, Minecraft, ARC Raiders',
   // Photos : en-têtes des pages (une par page) et galerie de l'accueil
   photos: ['img/photos/m1.jpg', 'img/photos/m2.jpg', 'img/photos/m3.jpg', 'img/photos/m4.jpg', 'img/photos/m5.jpg', 'img/photos/m6.jpg', 'img/photos/m7.jpg', 'img/photos/m8.jpg', 'img/photos/m9.jpg',
     'img/photos/m10.jpg', 'img/photos/m11.jpg', 'img/photos/m12.jpg', 'img/photos/m13.jpg', 'img/photos/m14.jpg', 'img/photos/m15.jpg', 'img/photos/m16.jpg', 'img/photos/m17.jpg', 'img/photos/m18.jpg'],
