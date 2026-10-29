@@ -131,22 +131,25 @@ const Lightbox = {
   },
 };
 
-// ---------- « En ce moment » (Last.fm) : badge + pop-up en direct + durée de la session d'écoute ----------
+// ---------- « En ce moment » (Last.fm) : badge + pop-up en direct, temps restant, session et historique ----------
 // Last.fm reçoit en temps réel ce que Spotify joue ; on interroge ses 200 derniers titres toutes les 30 s.
 const LFM_NOIMG = '2a96cbd8b46e442fc41c2b86b821562f';
 const SESSION_GAP = 25 * 60; // plus de 25 min entre deux débuts de titre = nouvelle session
+const mmss = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const npNorm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+-\s+.*$/, '').replace(/[^a-z0-9]/g, '');
 const NowPlaying = {
-  el: null, pop: null, toast: null, hitImg: '', cur: null, session: null, lastKey: '', dismissed: '', all: null, toastTimer: 0,
+  el: null, toast: null, cur: null, recent: [], session: null, timing: null, lastKey: '', dismissed: '',
+  all: null, byKey: null, durations: new Map(), firstSeen: new Map(), pinned: false, expanded: false, toastTimer: 0,
   init() {
     if (!CFG.lastfmUser || !CFG.lastfmKey) return;
     this.el = document.createElement('button');
     this.el.type = 'button'; this.el.className = 'np idle';
     this.el.setAttribute('aria-label', `Ce que ${OWNER} écoute`);
-    this.el.addEventListener('click', () => this.toggle());
+    this.el.addEventListener('click', () => (this.toast && this.pinned ? this.hideToast() : this.showToast(true)));
     document.body.appendChild(this.el);
     this.poll();
     setInterval(() => this.poll(), 30000);
-    setInterval(() => this.tick(), 15000); // fait avancer la durée de session entre deux requêtes
+    setInterval(() => this.tick(), 1000); // barre de progression et durées en direct
     document.addEventListener('visibilitychange', () => { if (!document.hidden) this.poll(); });
   },
   lfm(method, params) {
@@ -157,6 +160,7 @@ const NowPlaying = {
     const img = (t.image || []).map(i => i['#text']).filter(Boolean).pop() || '';
     return { name: t.name, artist: t.artist?.['#text'] || t.artist?.name || '', img: img.includes(LFM_NOIMG) ? '' : img, now: t['@attr']?.nowplaying === 'true', uts: +t.date?.uts || 0 };
   },
+  keyOf: t => t.artist + '\u0000' + t.name,
   // Session = titres enchaînés sans pause de plus de SESSION_GAP, en remontant depuis le plus récent
   sessionOf(list, live) {
     const starts = list.filter(t => t.uts).map(t => t.uts);
@@ -175,21 +179,74 @@ const NowPlaying = {
     if (!raw?.length) return;
     const list = raw.map(t => this.parse(t));
     const c = this.cur = list[0];
+    this.recent = list.slice(1);
     this.session = this.sessionOf(list, c.now);
-    const key = c.artist + '\u0000' + c.name;
-    if (key !== this.lastKey) { this.hitImg = ''; this.historyHit(); } // pochette Spotify si Last.fm n'en a pas
+    const key = this.keyOf(c);
+    if (key !== this.lastKey) { this.firstSeen.set(key, Date.now()); this.timing = null; }
+    await this.loadHistory();
+    if (c.now) await this.computeTiming(list);
     this.render();
-    if (c.now && key !== this.lastKey && key !== this.dismissed) this.showToast();
+    if (c.now && key !== this.lastKey && key !== this.dismissed) this.showToast(this.pinned);
     else if (this.toast) this.fillToast();
     this.lastKey = key;
-    if (this.pop) this.fill();
   },
-  tick() { if (this.cur) { this.render(); if (this.toast) this.fillToast(); } },
+  // Historique complet (export Spotify) : pochettes et petites stats pour les titres reconnus
+  async loadHistory() {
+    if (this.all) return;
+    this.all = await (STATIC ? fetchJson('data/all/tracks.json') : fetch('/api/tracks?year=all').then(r => r.json())).catch(() => []);
+    this.byKey = new Map(this.all.map(t => [npNorm(t.artist) + '|' + npNorm(t.name), t]));
+  },
+  find(t) { return this.byKey?.get(npNorm(t.artist) + '|' + npNorm(t.name)) || null; },
+  imgOf(t) { if (t.img) return t.img; const h = this.find(t); return h ? pic.track(h.uri) : PLACEHOLDER; },
+  // Durée d'un titre : Last.fm, sinon Deezer
+  async durationOf(t) {
+    const key = this.keyOf(t);
+    if (this.durations.has(key)) return this.durations.get(key);
+    let ms = +(await this.lfm('track.getInfo', { artist: t.artist, track: t.name, autocorrect: 1 }).catch(() => null))?.track?.duration || 0;
+    if (!ms) {
+      const q = encodeURIComponent(`artist:"${t.artist}" track:"${t.name}"`);
+      ms = ((await jsonp(`https://api.deezer.com/search?q=${q}&limit=1`).catch(() => null))?.data?.[0]?.duration || 0) * 1000;
+    }
+    this.durations.set(key, ms || null);
+    return ms || null;
+  },
+  // Début du titre en cours : fin du titre précédent si c'est plausible, sinon le moment où on l'a vu passer
+  async computeTiming(list) {
+    const c = list[0], prev = list.find(t => t.uts);
+    const [dur, prevDur] = await Promise.all([this.durationOf(c), prev ? this.durationOf(prev) : null]);
+    const now = Date.now(), seen = this.firstSeen.get(this.keyOf(c)) || now;
+    let start = seen;
+    if (prev) {
+      const prevEnd = Math.min(now, prev.uts * 1000 + (prevDur || 180000));
+      if (now - prevEnd < (dur || 240000) + 20000) start = Math.min(prevEnd, seen);
+    }
+    this.timing = { start, dur };
+  },
+  progress() {
+    const t = this.timing;
+    if (!this.cur?.now || !t?.dur) return null;
+    const el = Math.min(Date.now() - t.start, t.dur);
+    return { el, dur: t.dur, frac: el / t.dur, rem: t.dur - el };
+  },
+  tick() {
+    if (!this.cur) return;
+    const p = this.progress();
+    document.querySelectorAll('.np-bar i, .np-mini i').forEach(i => { i.style.width = p ? (p.frac * 100).toFixed(1) + '%' : '0'; });
+    if (p && this.toast) {
+      const el = this.toast.querySelector('.np-el'), rem = this.toast.querySelector('.np-rem');
+      if (el) el.textContent = mmss(p.el);
+      if (rem) rem.textContent = p.rem > 1000 ? `−${mmss(p.rem)}` : 'bientôt fini';
+    }
+    if (Date.now() % 15000 < 1000) { // toutes les 15 s : durée de session
+      this.render();
+      const s = this.toast?.querySelector('.np-toast-s');
+      if (s) s.innerHTML = this.sessionLine();
+    }
+  },
   sessionLen() {
     const s = this.session;
     if (!s) return '';
-    const secs = (s.live ? Date.now() / 1000 : s.end) - s.start;
-    const m = Math.max(1, Math.round(secs / 60));
+    const m = Math.max(1, Math.round(((s.live ? Date.now() / 1000 : s.end) - s.start) / 60));
     return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
   },
   sessionLine() {
@@ -198,88 +255,90 @@ const NowPlaying = {
     const n = `${s.capped ? '+ de ' : ''}${nf.format(s.count)} titre${s.count > 1 ? 's' : ''}`;
     return s.live ? `En session depuis <b>${this.sessionLen()}</b> · ${n}` : `Dernière session : <b>${this.sessionLen()}</b> · ${n}`;
   },
+  ago(uts) {
+    const m = Math.round((Date.now() / 1000 - uts) / 60);
+    if (m < 1) return 'à l’instant';
+    if (m < 60) return `il y a ${m} min`;
+    const d = new Date(uts * 1000), hm = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString() ? hm : `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${hm}`;
+  },
   when() {
-    const c = this.cur, ago = c.uts ? Math.round((Date.now() / 1000 - c.uts) / 60) : null;
-    return c.now ? `${esc(OWNER)} écoute en ce moment` : ago == null ? 'Dernière écoute' : ago < 60 ? `Écouté il y a ${ago} min` : ago < 1440 ? `Écouté il y a ${Math.round(ago / 60)} h` : `Écouté il y a ${Math.round(ago / 1440)} j`;
+    const c = this.cur;
+    return c.now ? `${esc(OWNER)} écoute en ce moment` : c.uts ? `Écouté ${this.ago(c.uts)}` : 'Dernière écoute';
   },
   render() {
     const c = this.cur;
     this.el.classList.toggle('idle', !c.now);
-    this.el.innerHTML = `${cover(c.img || this.hitImg || PLACEHOLDER, '')}<span class="np-t"><small>${this.when()}</small><b>${esc(c.name)}</b><span>${esc(c.artist)}${c.now && this.session ? ` · ${this.sessionLen()}` : ''}</span></span>`;
+    this.el.innerHTML = `${cover(this.imgOf(c), '')}<span class="np-t"><small>${this.when()}</small><b>${esc(c.name)}</b><span>${esc(c.artist)}${c.now && this.session ? ` · ${this.sessionLen()}` : ''}</span></span>${c.now ? '<span class="np-mini" aria-hidden="true"><i></i></span>' : ''}`;
+    this.tickBars();
   },
-  // Morceau correspondant dans l'historique complet (pour les petites stats)
-  async historyHit() {
-    if (!this.all) this.all = await (STATIC ? fetchJson('data/all/tracks.json') : fetch('/api/tracks?year=all').then(r => r.json())).catch(() => []);
-    const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+-\s+.*$/, '').replace(/[^a-z0-9]/g, '');
-    const c = this.cur;
-    const hit = this.all.find(t => norm(t.name) === norm(c.name) && norm(t.artist) === norm(c.artist)) || null;
-    const img = hit && !c.img ? pic.track(hit.uri) : '';
-    if (img !== this.hitImg) { this.hitImg = img; this.render(); }
-    return hit;
-  },
-  showToast() {
+  tickBars() { const p = this.progress(); document.querySelectorAll('.np-bar i, .np-mini i').forEach(i => { i.style.width = p ? (p.frac * 100).toFixed(1) + '%' : '0'; }); },
+  // Pop-up : s'affiche à chaque nouveau titre (se range tout seul) ou reste ouvert quand on clique sur le badge
+  showToast(pin) {
+    this.pinned = !!pin;
     if (!this.toast) {
       this.toast = document.createElement('div');
       this.toast.className = 'np-toast';
-      this.toast.setAttribute('role', 'status');
+      this.toast.setAttribute('role', 'dialog');
+      this.toast.setAttribute('aria-label', `Ce que ${OWNER} écoute`);
       this.toast.addEventListener('click', e => {
-        if (e.target.closest('.np-toast-x')) { this.dismissed = this.cur.artist + '\u0000' + this.cur.name; return this.hideToast(); }
-        this.hideToast();
-        if (!this.pop) this.toggle();
+        if (e.target.closest('.np-toast-x')) {
+          if (!this.pinned) this.dismissed = this.keyOf(this.cur);
+          return this.hideToast();
+        }
+        if (e.target.closest('.np-more')) {
+          this.expanded = !this.expanded;
+          this.toast.classList.toggle('open', this.expanded);
+          e.target.closest('.np-more').setAttribute('aria-expanded', this.expanded);
+        }
+        if (e.target.closest('a')) return this.hideToast();
+        this.pin();
       });
       this.toast.addEventListener('mouseenter', () => clearTimeout(this.toastTimer));
-      this.toast.addEventListener('mouseleave', () => this.armToast());
+      this.toast.addEventListener('mouseleave', () => { if (!this.pinned) this.armToast(); });
       document.body.appendChild(this.toast);
     }
     this.fillToast();
     void this.toast.offsetWidth; // applique l'état de départ avant l'animation d'entrée
     this.toast.classList.add('in');
-    this.armToast();
+    if (this.pinned) clearTimeout(this.toastTimer); else this.armToast();
   },
+  pin() { this.pinned = true; clearTimeout(this.toastTimer); },
   armToast() { clearTimeout(this.toastTimer); this.toastTimer = setTimeout(() => this.hideToast(), 9000); },
   hideToast() {
     clearTimeout(this.toastTimer);
     const t = this.toast;
     if (!t) return;
-    this.toast = null;
+    this.toast = null; this.pinned = false;
     t.classList.remove('in');
     setTimeout(() => t.remove(), 500);
   },
-  async fillToast() {
+  histHtml() {
+    const s = this.session, items = this.recent.slice(0, 30);
+    if (!items.length) return '<li class="np-h-empty">Rien pour l’instant.</li>';
+    let divided = false;
+    return items.map(t => {
+      let sep = '';
+      if (s && !divided && t.uts && t.uts < s.start) { divided = true; sep = '<li class="np-h-sep">Avant</li>'; }
+      return `${sep}<li>${cover(this.imgOf(t), '')}<span class="np-h-t"><b>${esc(t.name)}</b><span>${esc(t.artist)}</span></span><time>${t.uts ? this.ago(t.uts) : ''}</time></li>`;
+    }).join('');
+  },
+  fillToast() {
     const c = this.cur, t = this.toast;
     if (!c || !t) return;
-    t.innerHTML = `<button type="button" class="np-toast-x" aria-label="Fermer">×</button><div class="np-toast-art">${cover(c.img || PLACEHOLDER, '')}</div><div class="np-toast-t"><small><span class="np-eq" aria-hidden="true"><i></i><i></i><i></i></span>${this.when()}</small><b>${esc(c.name)}</b><span>${esc(c.artist)}</span><p class="np-toast-s">${this.sessionLine()}</p><p class="np-toast-h"></p></div>`;
-    const hit = await this.historyHit();
-    if (this.toast !== t) return;
-    if (hit && !c.img) t.querySelector('.cov').src = pic.track(hit.uri);
-    t.querySelector('.np-toast-h').textContent = hit ? `${nf.format(hit.plays)} écoutes dans son historique · n°${nf.format(hit.rank)}` : 'Pas encore dans son historique : une découverte ?';
-  },
-  toggle() {
-    if (this.pop) { this.pop.remove(); this.pop = null; return; }
-    this.hideToast();
-    this.pop = document.createElement('div');
-    this.pop.className = 'np-pop';
-    document.body.appendChild(this.pop);
-    this.fill();
-  },
-  async fill() {
-    const c = this.cur, pop = this.pop;
-    if (!c || !pop) return;
-    pop.innerHTML = `${cover(c.img || PLACEHOLDER, '')}<h3>${esc(c.name)}</h3><p>${esc(c.artist)}</p>${this.session ? `<p class="np-pop-s">${this.sessionLine()}</p>` : ''}<dl class="facts"></dl>`;
-    const [hit, info] = await Promise.all([
-      this.historyHit(),
-      this.lfm('track.getInfo', { artist: c.artist, track: c.name, username: CFG.lastfmUser, autocorrect: 1 }).catch(() => null),
-    ]);
-    if (this.pop !== pop) return;
-    const facts = [];
-    if (this.session) facts.push(['Session commencée à', new Date(this.session.start * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })]);
-    if (hit) {
-      facts.push(['Écoutes dans son historique', nf.format(hit.plays)], ['Classement tous temps', `n°${nf.format(hit.rank)}`], ['Découvert le', dateFr(hit.first)]);
-      if (!c.img) pop.querySelector('.cov').src = pic.track(hit.uri);
-    } else facts.push(['Dans son historique', 'pas encore, c’est peut-être une découverte']);
-    const lp = +info?.track?.userplaycount;
-    if (lp) facts.push(['Écoutes sur Last.fm', nf.format(lp)]);
-    pop.querySelector('.facts').innerHTML = facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('') + (hit ? `<div><dt>&nbsp;</dt><dd><a class="more" href="${aTrack(hit.uri)}" style="--c:var(--violet)">Voir la fiche →</a></dd></div>` : '');
+    const scroll = t.querySelector('.np-hist')?.scrollTop || 0;
+    const hit = this.find(c), p = this.progress();
+    const stat = hit ? `${nf.format(hit.plays)} écoutes dans son historique · n°${nf.format(hit.rank)}` : (c.now ? 'Pas encore dans son historique : une découverte ?' : '');
+    t.classList.toggle('open', this.expanded);
+    t.classList.toggle('live', !!c.now);
+    t.innerHTML = `<button type="button" class="np-toast-x" aria-label="Fermer">×</button>
+      <div class="np-toast-main"><div class="np-toast-art">${cover(this.imgOf(c), '')}</div>
+      <div class="np-toast-t"><small>${c.now ? '<span class="np-eq" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${this.when()}</small><b>${esc(c.name)}</b><span>${esc(c.artist)}</span>
+      <p class="np-toast-s">${this.sessionLine()}</p>${stat ? `<p class="np-toast-h">${stat}</p>` : ''}</div></div>
+      ${p ? `<div class="np-prog"><div class="np-bar"><i style="width:${(p.frac * 100).toFixed(1)}%"></i></div><div class="np-times"><span class="np-el">${mmss(p.el)}</span><span class="np-rem">${p.rem > 1000 ? `−${mmss(p.rem)}` : 'bientôt fini'}</span><span class="np-dur">${mmss(p.dur)}</span></div></div>` : ''}
+      <div class="np-actions"><button type="button" class="np-more" aria-expanded="${this.expanded}">Historique <span>(${nf.format(Math.min(this.recent.length, 30))})</span><i aria-hidden="true">▾</i></button>${hit ? `<a class="np-link" href="${aTrack(hit.uri)}">Voir la fiche →</a>` : ''}</div>
+      <ol class="np-hist">${this.histHtml()}</ol>`;
+    t.querySelector('.np-hist').scrollTop = scroll;
   },
 };
 
