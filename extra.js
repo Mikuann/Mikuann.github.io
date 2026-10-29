@@ -91,6 +91,46 @@ const Player = {
   },
 };
 
+// ---------- Visionneuse des photos de la galerie (clic, flèches, Échap) ----------
+const Lightbox = {
+  el: null, i: 0,
+  init() {
+    document.addEventListener('click', e => {
+      const a = e.target.closest('.gallery a');
+      if (!a) return;
+      e.preventDefault();
+      this.open(+a.dataset.i);
+    });
+  },
+  open(i) {
+    this.close();
+    this.el = document.createElement('div');
+    this.el.className = 'lightbox';
+    this.el.setAttribute('role', 'dialog');
+    this.el.setAttribute('aria-label', 'Photo');
+    this.el.innerHTML = '<img alt=""><button type="button" class="lb-btn lb-prev" aria-label="Photo précédente">‹</button><button type="button" class="lb-btn lb-next" aria-label="Photo suivante">›</button><button type="button" class="lb-btn lb-x" aria-label="Fermer">×</button>';
+    this.el.addEventListener('click', e => {
+      if (e.target.closest('.lb-prev')) return this.show(this.i - 1);
+      if (e.target.closest('.lb-next')) return this.show(this.i + 1);
+      if (e.target === this.el || e.target.closest('.lb-x')) this.close();
+    });
+    this.onKey = e => { if (e.key === 'Escape') this.close(); else if (e.key === 'ArrowLeft') this.show(this.i - 1); else if (e.key === 'ArrowRight') this.show(this.i + 1); };
+    document.addEventListener('keydown', this.onKey);
+    document.body.appendChild(this.el);
+    this.show(i);
+  },
+  show(i) {
+    const list = CFG.photos || [];
+    this.i = (i + list.length) % list.length;
+    $('img', this.el).src = list[this.i];
+  },
+  close() {
+    if (!this.el) return;
+    document.removeEventListener('keydown', this.onKey);
+    this.el.remove(); this.el = null;
+  },
+};
+
 // ---------- Badge « en ce moment » : dernier titre scrobblé sur Last.fm, rafraîchi toutes les 30 s ----------
 const LFM_NOIMG = '2a96cbd8b46e442fc41c2b86b821562f';
 const NowPlaying = {

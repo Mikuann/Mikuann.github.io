@@ -263,6 +263,7 @@ const pages = {
         </dl>`, { more: moreLink('#/habitudes', 'Habitudes') })}
         ${card('Année par année', `<div class="chart" id="c-years"></div>`, { note: "Heures d'écoute sur l'année entière (l'année en cours s'arrête à la date de l'export)." })}
       </div>
+      ${CFG.overviewBanner ? `<div class="vbanner"><video muted loop playsinline preload="metadata" poster="${esc(CFG.overviewBannerPoster || '')}" src="${esc(CFG.overviewBanner)}" aria-hidden="true"></video><div class="vbanner-txt"><span>${esc(OWNER)} · ${isAll() ? 'tout l’historique' : YEAR}</span><strong>${isAll() ? 'Plongée dans l’historique' : 'Plongée dans l’année'}</strong></div></div>` : ''}
       ${o.artistMonths ? `<h2 class="section-t">L'année en détail</h2>
       <div class="grid">
         ${card('Le flux des artistes', `<div class="chart" id="c-stream" style="min-height:320px"></div>`, { note: 'Le poids de chaque artiste du top 8, mois par mois. Survole une couleur pour le détail.', wide: true })}
@@ -270,6 +271,8 @@ const pages = {
         ${o.cumul ? card('Le compteur', `<div class="chart" id="c-cumul" style="min-height:280px"></div>`, { note: `Heures cumulées depuis le 1er janvier${o.prevCumul ? `, comparées à ${YEAR - 1}` : ''}.` }) : ''}
         ${o.ageGuess ? card('Âge musical', `<div class="age-hero"><span class="age-num">${o.ageGuess}<small> ans</small></span><p class="note">Estimé d'après l'année de sortie de tout ce que ${esc(OWNER)} écoute. On écoute surtout la musique sortie vers nos 16 ans, alors on remonte le temps.</p></div>`, { more: moreLink('#/profil', 'Profil musical') }) : ''}
       </div>` : ''}
+      ${CFG.photos?.length ? `<h2 class="section-t">Les moments de ${esc(OWNER)}</h2>
+      <div class="gallery">${CFG.photos.map((p, i) => `<a href="${esc(p)}" data-i="${i}" aria-label="Agrandir la photo ${i + 1}"><img src="${esc(p)}" alt="" loading="lazy" data-optional></a>`).join('')}</div>` : ''}
       <h2 class="section-t">Le mur des pochettes</h2>
       <div class="wall">${o.wall.map(a => `<a href="${aAlbum(a.artist, a.name)}" title="${esc(a.name)} · ${esc(a.artist)}">${cover(pic.album(a.artist, a.name))}<span>${esc(a.name)}<br>${fmtH(a.hours)}</span></a>`).join('')}</div>`;
     if (o.artistMonths) {
@@ -565,6 +568,28 @@ document.addEventListener('click', e => {
     .catch(() => { b.textContent = 'Pas d’extrait disponible'; b.disabled = true; });
 });
 
+// Une photo de Mikuan en fond de l'en-tête de chaque page (index dans CFG.photos)
+const PAGE_PHOTO = { mois: 4, artistes: 3, titres: 1, albums: 7, habitudes: 6, decouvertes: 0, tuto: 2 };
+function headPhoto(route, args) {
+  const h = main.querySelector('.head'), list = CFG.photos || [];
+  if (!h || !list.length || h.classList.contains('with-art') || !(route in PAGE_PHOTO)) return;
+  const i = route === 'mois' && args[0] ? (+args[0] + 2) % list.length : PAGE_PHOTO[route] % list.length;
+  h.classList.add('with-photo');
+  h.insertAdjacentHTML('afterbegin', `<div class="head-photo" style="background-image:url('${esc(list[i])}')"></div>`);
+}
+
+// Bannière vidéo : apparaît et se lance quand elle arrive à l'écran, se met en pause hors écran
+function watchBanners() {
+  const els = main.querySelectorAll('.vbanner');
+  if (!els.length) return;
+  if (!('IntersectionObserver' in window)) return els.forEach(el => { el.classList.add('in'); el.querySelector('video').play().catch(() => { }); });
+  const io = new IntersectionObserver(entries => entries.forEach(e => {
+    const v = e.target.querySelector('video');
+    if (e.isIntersecting) { e.target.classList.add('in'); v.play().catch(() => { }); } else v.pause();
+  }), { threshold: 0.25 });
+  els.forEach(el => io.observe(el));
+}
+
 // ---------- Router ----------
 const ROUTES = { '': '', recap: '', mois: 'mois', artistes: 'artistes', artiste: 'artistes', titres: 'titres', titre: 'titres', albums: 'albums', album: 'albums', habitudes: 'habitudes', decouvertes: 'decouvertes', profil: 'profil', tuto: 'tuto' };
 async function render() {
@@ -580,6 +605,8 @@ async function render() {
     else if (route === 'titre') await pages.titre(args[0]);
     else if (route === 'album') await pages.album(args[0], args[1]);
     else await (pages[route] || EXTRA_PAGES[route] || pages[''])(...args);
+    headPhoto(route, args);
+    watchBanners();
     redraws.forEach(f => f());
     if (route === 'recap') openStory();
     document.title = (main.querySelector('h1')?.textContent || 'Stats') + ` · Les stats Spotify de ${OWNER}`;
@@ -601,6 +628,7 @@ addEventListener('hashchange', render);
   if (CFG.avatar) $('#brand-av').src = CFG.avatar; else $('#brand-av').remove();
   Player.init();
   NowPlaying.init();
+  Lightbox.init();
   let saved = null;
   try { saved = localStorage.getItem('year'); } catch { }
   YEAR = saved === 'all' ? 'all' : (META.years.some(y => String(y.year) === saved) ? +saved : META.defaultYear);

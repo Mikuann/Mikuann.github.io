@@ -404,3 +404,42 @@ tbody tr:hover { background: var(--panel-2); }
 .s-polas img:nth-child(3) { --r: -2deg; --y: -4px; animation-delay: .2s; }
 .s-polas img:nth-child(4) { --r: 5deg; --y: 6px; animation-delay: .3s; }
 @keyframes pola-in { from { opacity: 0; transform: rotate(0) translateY(30px) scale(.8); } }
+
+/* Photo de Mikuan en fond de l'en-tête des pages */
+.head.with-photo { position: relative; isolation: isolate; overflow: hidden; border-radius: 22px; padding: clamp(22px, 4vw, 40px) clamp(18px, 3vw, 32px); min-height: 190px; justify-content: center; background: var(--panel); border: 1px solid var(--line); }
+.head-photo { position: absolute; inset: 0; z-index: -1; background-size: cover; background-position: center 35%; opacity: .75; -webkit-mask-image: linear-gradient(90deg, transparent 10%, rgba(0, 0, 0, .55) 45%, #000 85%); mask-image: linear-gradient(90deg, transparent 10%, rgba(0, 0, 0, .55) 45%, #000 85%); }
+.head.with-photo h1, .head.with-photo .lede { text-shadow: 0 2px 14px rgba(0, 0, 0, .7); }
+.head.with-photo .lede { max-width: 60ch; }
+@media (max-width: 600px) { .head-photo { opacity: .4; -webkit-mask-image: none; mask-image: none; } }
+
+/* Galerie de l'accueil */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.gallery a { display: block; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: var(--panel-2); border: 1px solid var(--line); }
+.gallery img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s cubic-bezier(.2, .8, .2, 1), filter .4s; filter: saturate(.95); }
+.gallery a:hover img, .gallery a:focus-visible img { transform: scale(1.06); filter: saturate(1.15); }
+.gallery a:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
+.gallery a:first-child { grid-column: span 2; grid-row: span 2; }
+@media (max-width: 600px) { .gallery a:first-child { grid-column: auto; grid-row: auto; } }
+
+/* Visionneuse plein écran */
+.lightbox { position: fixed; inset: 0; z-index: 60; background: rgba(10, 8, 15, .92); display: grid; place-items: center; animation: lb-in .25s ease; }
+.lightbox img { max-width: min(92vw, 1400px); max-height: 86vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+.lb-btn { all: unset; cursor: pointer; position: absolute; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, .1); color: var(--fg); font-size: 30px; line-height: 1; }
+.lb-btn:hover { background: rgba(255, 255, 255, .2); }
+.lb-btn:focus-visible { outline: 3px solid var(--violet); }
+.lb-prev { left: 16px; top: 50%; transform: translateY(-50%); }
+.lb-next { right: 16px; top: 50%; transform: translateY(-50%); }
+.lb-x { right: 16px; top: 16px; }
+@keyframes lb-in { from { opacity: 0; } }
+
+/* Bannière vidéo de la vue d'ensemble (apparaît au défilement) */
+.vbanner { position: relative; isolation: isolate; overflow: hidden; border-radius: 24px; aspect-ratio: 21 / 7; min-height: 180px; border: 1px solid var(--line); background: #0b0916; opacity: 0; transform: translateY(40px) scale(.97); transition: opacity .9s ease, transform .9s cubic-bezier(.2, .8, .2, 1); }
+.vbanner.in { opacity: 1; transform: none; }
+.vbanner video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.vbanner::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(14, 11, 20, .85) 0%, rgba(14, 11, 20, .35) 45%, transparent 75%), linear-gradient(0deg, rgba(14, 11, 20, .6), transparent 50%); }
+.vbanner-txt { position: absolute; left: clamp(18px, 4vw, 44px); bottom: clamp(16px, 3vw, 34px); display: flex; flex-direction: column; gap: 6px; }
+.vbanner-txt span { font: 700 13px var(--font-body); text-transform: uppercase; letter-spacing: .12em; color: #d6d1df; }
+.vbanner-txt strong { font: 800 clamp(30px, 5.5vw, 64px)/.95 var(--font-display); letter-spacing: -.04em; text-shadow: 0 4px 24px rgba(0, 0, 0, .6); }
+.vbanner.in .vbanner-txt { animation: vb-txt .9s .25s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes vb-txt { from { opacity: 0; transform: translateX(-24px); } }
+@media (prefers-reduced-motion: reduce) { .vbanner { transition: none; opacity: 1; transform: none; } .vbanner.in .vbanner-txt { animation: none; } }
