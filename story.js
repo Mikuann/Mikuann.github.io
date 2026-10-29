@@ -193,7 +193,10 @@ async function openStory() {
       <div><h3>Minutes d'écoute</h3><span class="s-num">${nf.format(minutes)}</span></div>
       <div><h3>Nouveaux artistes</h3><span class="s-num">${nf.format(o.newArtists)}</span></div>
     </div>` },
+    CFG.bestof && { song: song(0), burst: true, video: 'full', html: `${CFG.avatar ? `<img class="s-thanks-av" src="${esc(CFG.avatar)}" alt="">` : ''}<p class="s-kicker">Le best of de ${esc(OWNER)}${isAll() ? '' : ' ' + YEAR}</p><p class="s-mid">Merci pour tous ces bons moments</p><p class="s-sub">${CFG.bestofGames ? esc(CFG.bestofGames) + '… ' : ''}et <b>${nf.format(Math.round(o.hours))} h</b> de musique pour les accompagner. À l’année prochaine 💜</p>` },
   ].filter(Boolean);
+  // Les dernières diapos passent le best of en fond (la dernière en plein écran)
+  if (CFG.bestof) slides.slice(-3).forEach(s => { s.video = s.video || 'bg'; });
   // Images chargées tout de suite (pas en différé) et préchargées pour toutes les diapos
   for (const s of slides) {
     s.html = s.html.replace(/ loading="lazy"/g, '');
@@ -206,7 +209,7 @@ async function openStory() {
   storyEl.setAttribute('aria-label', 'Récap de ton année');
   storyEl.innerHTML = `<div class="story-bars">${slides.map(() => '<span><i></i></span>').join('')}</div>
     <div class="story-top"><span>${esc(OWNER)} · ${isAll() ? 'tout l’historique' : YEAR}</span><span class="story-btns"><div class="vol"><input type="range" min="0" max="100" aria-label="Volume du récap"></div><button type="button" class="story-btn snd"></button><button type="button" class="story-x" aria-label="Fermer le récap">×</button></span></div>
-    <div class="story-stage"><div class="s-backdrop"></div><div class="story-blob"></div><div class="story-blob"></div><canvas class="story-fx" aria-hidden="true"></canvas><div class="story-nav prev"></div><div class="story-nav next"></div><div class="story-slide" aria-live="polite"></div></div>
+    <div class="story-stage"><div class="s-backdrop"></div>${CFG.bestof ? `<video class="s-video" muted playsinline loop preload="none" poster="${esc(CFG.bestofPoster || '')}" src="${esc(CFG.bestof)}" aria-hidden="true"></video>` : ''}<div class="story-blob"></div><div class="story-blob"></div><canvas class="story-fx" aria-hidden="true"></canvas><div class="story-nav prev"></div><div class="story-nav next"></div><div class="story-slide" aria-live="polite"></div></div>
     <div class="story-hint">Clic ou flèches pour naviguer · Espace pour pause · M pour couper le son · Échap pour fermer</div>`;
   document.body.appendChild(storyEl);
   document.body.style.overflow = 'hidden';
@@ -218,6 +221,7 @@ async function openStory() {
   Sound.onState = () => { sndBtn.textContent = Sound.blocked ? '♪ Activer le son' : Sound.muted ? '♪ Remettre le son' : '♪ Couper le son'; sndBtn.classList.toggle('hot', Sound.blocked); };
   Sound.onState();
   const fx = startFx($('.story-fx', storyEl));
+  const video = $('.s-video', storyEl);
   let i = -1;
   function show(n) {
     n = Math.max(0, Math.min(slides.length - 1, n));
@@ -235,6 +239,12 @@ async function openStory() {
     countUp(slideEl);
     if (s.burst) setTimeout(() => fx.burst(), 350);
     Sound.play(s.song);
+    if (video) {
+      if (i >= slides.length - 5) video.preload = 'auto';
+      storyEl.classList.toggle('with-video', !!s.video);
+      storyEl.classList.toggle('video-full', s.video === 'full');
+      if (s.video) video.play().catch(() => { }); else video.pause();
+    }
     barEls.forEach((el, k) => { el.classList.toggle('done', k < i); el.classList.remove('on'); });
     void barEls[i].offsetWidth; // relance l'animation de la barre
     barEls[i].classList.add('on');
@@ -248,7 +258,11 @@ async function openStory() {
     if (location.hash === '#/recap') history.replaceState(null, '', '#/');
     if (playerWasOn) Player.play();
   }
-  function togglePause() { const p = storyEl.classList.toggle('paused'); Sound.pause(p); }
+  function togglePause() {
+    const p = storyEl.classList.toggle('paused');
+    Sound.pause(p);
+    if (video && storyEl.classList.contains('with-video')) p ? video.pause() : video.play().catch(() => { });
+  }
   function onKey(e) {
     if (e.key === 'Escape') return close();
     Sound.kick();

@@ -8,6 +8,9 @@ window.SITE_CONFIG = {
   banner: 'img/banniere.webp',
   art2: 'img/jss.webp', // dessin affiché sur la page Profil musical
   art2Credit: 'JSS',
+  bestof: 'video/bestof.mp4', // best of en fond des dernières diapos du récap (sans son)
+  bestofPoster: 'video/bestof.jpg',
+  bestofGames: 'Minecraft, Roblox, VRChat, ARC Raiders',
   lastfmUser: '',
   lastfmKey: '',
 };
