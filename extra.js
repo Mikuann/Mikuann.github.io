@@ -10,7 +10,7 @@ const Player = {
     try { const v = localStorage.getItem('vol'); if (v != null && !isNaN(+v)) this.volume = +v; } catch { }
     if (this.volume > 0) this.lastVol = this.volume;
     this.decorate();
-    document.addEventListener('input', e => { if (e.target.matches('.vol input')) this.setVolume(e.target.value / 100); });
+    document.addEventListener('input', e => { if (e.target.matches('.vol:not(.cvol) input')) this.setVolume(e.target.value / 100); });
     document.addEventListener('click', e => { if (e.target.closest('.vol-ic')) this.toggleMute(); });
     $('#player-btn').addEventListener('click', () => (this.blocked ? this.resume() : this.on ? this.pause(true) : this.play(true)));
     let want = true;
@@ -19,15 +19,15 @@ const Player = {
   },
   // Ajoute l'icône haut-parleur (clic = couper / remettre le son) devant chaque slider de volume
   decorate() {
-    document.querySelectorAll('.vol').forEach(v => {
+    document.querySelectorAll('.vol:not(.cvol)').forEach(v => {
       if (!v.querySelector('.vol-ic')) v.insertAdjacentHTML('afterbegin', `<button type="button" class="vol-ic">${VOL_ICON}</button>`);
     });
     this.syncSliders();
   },
   syncSliders() {
     const p = Math.round(this.volume * 100), level = p === 0 ? 0 : p < 50 ? 1 : 2;
-    document.querySelectorAll('.vol input').forEach(i => { i.value = p; i.style.setProperty('--p', p + '%'); });
-    document.querySelectorAll('.vol').forEach(v => { v.dataset.level = level; });
+    document.querySelectorAll('.vol:not(.cvol) input').forEach(i => { i.value = p; i.style.setProperty('--p', p + '%'); });
+    document.querySelectorAll('.vol:not(.cvol)').forEach(v => { v.dataset.level = level; });
     document.querySelectorAll('.vol-ic').forEach(b => b.setAttribute('aria-label', p ? 'Couper le son' : 'Remettre le son'));
   },
   toggleMute() { this.setVolume(this.volume > 0 ? 0 : this.lastVol || 0.5); },

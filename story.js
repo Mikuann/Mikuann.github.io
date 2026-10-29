@@ -157,6 +157,8 @@ function countUp(root) {
 }
 
 // ---------- Les diapos ----------
+let clipVol = 0.2;
+try { const v = localStorage.getItem('clipVol'); if (v != null && !isNaN(+v)) clipVol = +v; } catch { }
 async function openStory() {
   if (storyEl) return;
   const [o, h, ms] = await Promise.all([api('overview'), api('habits'), isAll() ? null : api('months')]);
@@ -208,7 +210,7 @@ async function openStory() {
   storyEl.setAttribute('role', 'dialog');
   storyEl.setAttribute('aria-label', 'Récap de ton année');
   storyEl.innerHTML = `<div class="story-bars">${slides.map(() => '<span><i></i></span>').join('')}</div>
-    <div class="story-top"><span>${esc(OWNER)} · ${isAll() ? 'tout l’historique' : YEAR}</span><span class="story-btns"><div class="vol"><input type="range" min="0" max="100" aria-label="Volume du récap"></div><button type="button" class="story-btn snd"></button><button type="button" class="story-x" aria-label="Fermer le récap">×</button></span></div>
+    <div class="story-top"><span>${esc(OWNER)} · ${isAll() ? 'tout l’historique' : YEAR}</span><span class="story-btns">${CFG.bestof ? '<div class="vol cvol" title="Son des clips du best of"><span class="cvol-l">Clips</span><input type="range" min="0" max="100" aria-label="Volume du son des clips"></div>' : ''}<div class="vol"><input type="range" min="0" max="100" aria-label="Volume du récap"></div><button type="button" class="story-btn snd"></button><button type="button" class="story-x" aria-label="Fermer le récap">×</button></span></div>
     <div class="story-stage"><div class="s-backdrop"></div>${CFG.bestof ? `<video class="s-video" muted playsinline loop preload="none" poster="${esc(CFG.bestofPoster || '')}" src="${esc(CFG.bestof)}" aria-hidden="true"></video>` : ''}<div class="story-blob"></div><div class="story-blob"></div><canvas class="story-fx" aria-hidden="true"></canvas><div class="story-nav prev"></div><div class="story-nav next"></div><div class="story-slide" aria-live="polite"></div></div>
     <div class="story-hint">Clic ou flèches pour naviguer · Espace pour pause · M pour couper le son · Échap pour fermer</div>`;
   document.body.appendChild(storyEl);
@@ -218,10 +220,24 @@ async function openStory() {
   Player.pause(); Player.decorate();
   const slideEl = $('.story-slide', storyEl), barEls = [...storyEl.querySelectorAll('.story-bars span')], blobs = storyEl.querySelectorAll('.story-blob');
   const sndBtn = $('.snd', storyEl);
-  Sound.onState = () => { sndBtn.textContent = Sound.blocked ? '♪ Activer le son' : Sound.muted ? '♪ Remettre le son' : '♪ Couper le son'; sndBtn.classList.toggle('hot', Sound.blocked); };
+  // Son des clips du best of : bas par défaut, réglable avec son propre slider (coupé aussi par M)
+  const video = $('.s-video', storyEl), cvol = $('.cvol input', storyEl);
+  const applyClipVol = () => {
+    if (!video) return;
+    video.volume = clipVol;
+    video.muted = clipVol === 0 || Sound.muted;
+    if (cvol) { cvol.value = Math.round(clipVol * 100); cvol.style.setProperty('--p', Math.round(clipVol * 100) + '%'); }
+  };
+  cvol?.addEventListener('input', e => {
+    e.stopPropagation();
+    clipVol = cvol.value / 100;
+    try { localStorage.setItem('clipVol', String(clipVol)); } catch { }
+    applyClipVol();
+  });
+  applyClipVol();
+  Sound.onState = () => { sndBtn.textContent = Sound.blocked ? '♪ Activer le son' : Sound.muted ? '♪ Remettre le son' : '♪ Couper le son'; sndBtn.classList.toggle('hot', Sound.blocked); applyClipVol(); };
   Sound.onState();
   const fx = startFx($('.story-fx', storyEl));
-  const video = $('.s-video', storyEl);
   let i = -1;
   function show(n) {
     n = Math.max(0, Math.min(slides.length - 1, n));
@@ -243,7 +259,7 @@ async function openStory() {
       if (i >= slides.length - 5) video.preload = 'auto';
       storyEl.classList.toggle('with-video', !!s.video);
       storyEl.classList.toggle('video-full', s.video === 'full');
-      if (s.video) video.play().catch(() => { }); else video.pause();
+      if (s.video) { applyClipVol(); video.play().catch(() => { video.muted = true; video.play().catch(() => { }); }); } else video.pause();
     }
     barEls.forEach((el, k) => { el.classList.toggle('done', k < i); el.classList.remove('on'); });
     void barEls[i].offsetWidth; // relance l'animation de la barre

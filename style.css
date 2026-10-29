@@ -443,3 +443,8 @@ tbody tr:hover { background: var(--panel-2); }
 .vbanner.in .vbanner-txt { animation: vb-txt .9s .25s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes vb-txt { from { opacity: 0; transform: translateX(-24px); } }
 @media (prefers-reduced-motion: reduce) { .vbanner { transition: none; opacity: 1; transform: none; } .vbanner.in .vbanner-txt { animation: none; } }
+/* Slider du son des clips (visible seulement quand le best of passe) */
+.cvol { gap: 6px; }
+.cvol-l { font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: #d6d1df; }
+.story:not(.with-video) .cvol { display: none; }
+@media (max-width: 520px) { .cvol-l { display: none; } .story .vol input[type="range"] { width: 64px; } }
