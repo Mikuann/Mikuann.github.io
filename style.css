@@ -24,19 +24,19 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .top-in { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; padding-block: 12px 6px; flex-wrap: wrap; }
 .brand { font: 800 24px/1 var(--font-display); text-decoration: none; letter-spacing: -.03em; display: flex; align-items: center; gap: 8px; }
 .brand-dot { width: 22px; height: 22px; border-radius: 50%; background: conic-gradient(var(--lime) 0 25%, var(--pink) 0 50%, var(--violet) 0 75%, var(--orange) 0); opacity: .9; }
-.brand-av { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--violet); background: var(--panel-2); }
+.brand-av { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--violet); background: radial-gradient(circle at 50% 35%, #6d5a8a, #2a2038); }
 .brand small { font: 600 12px var(--font-body); color: var(--muted); letter-spacing: 0; display: block; margin-top: 2px; }
 .owner { display: flex; align-items: center; gap: 14px; }
-.owner img { width: clamp(64px, 9vw, 96px); height: clamp(64px, 9vw, 96px); border-radius: 50%; object-fit: cover; border: 3px solid var(--violet); box-shadow: 0 10px 30px rgba(0, 0, 0, .5); }
+.owner img { width: clamp(64px, 9vw, 96px); height: clamp(64px, 9vw, 96px); border-radius: 50%; object-fit: cover; border: 3px solid var(--violet); box-shadow: 0 10px 30px rgba(0, 0, 0, .5); background: radial-gradient(circle at 50% 35%, #6d5a8a, #2a2038); }
 .owner span { font: 700 14px var(--font-body); color: #d6d1df; text-transform: uppercase; letter-spacing: .1em; }
-.hero-portrait { position: absolute; z-index: -1; right: 0; bottom: 0; height: 100%; max-width: 46%; object-fit: contain; object-position: right bottom; -webkit-mask-image: linear-gradient(90deg, transparent, #000 30%); mask-image: linear-gradient(90deg, transparent, #000 30%); }
+.hero-portrait { position: absolute; z-index: -1; right: 0; bottom: 0; height: 100%; max-width: 46%; object-fit: contain; object-position: right bottom; filter: drop-shadow(0 12px 30px rgba(0, 0, 0, .55)); -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%); mask-image: linear-gradient(90deg, transparent, #000 12%); }
 .credit { position: absolute; right: 14px; bottom: 10px; font-size: 11px; color: rgba(255, 255, 255, .55); }
 @media (max-width: 760px) { .hero-portrait { opacity: .35; max-width: 70%; } }
 .hero-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .hero-strip .cov { width: 48px; height: 48px; border-radius: 8px; box-shadow: 0 6px 16px rgba(0, 0, 0, .45); }
 .hero-strip small { color: #d6d1df; font-weight: 600; margin-left: 4px; }
 .made-by { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
-.made-by img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.made-by img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: radial-gradient(circle at 50% 35%, #6d5a8a, #2a2038); }
 .top-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .year { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
 select, input[type="search"] { font: inherit; color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; }
@@ -97,6 +97,12 @@ h2 { font: 800 20px/1.15 var(--font-display); margin: 0; letter-spacing: -.02em;
 .lede b { color: var(--fg); font-weight: 700; }
 .lede a { color: var(--fg); }
 .head { display: flex; flex-direction: column; gap: 12px; }
+.head.with-art { flex-direction: row; align-items: center; justify-content: space-between; gap: 24px; }
+.head.with-art > div { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.head-art { margin: 0; flex: none; position: relative; width: clamp(130px, 20vw, 220px); }
+.head-art img { width: 100%; display: block; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .5)); }
+.head-art figcaption { position: absolute; right: 0; bottom: -4px; font-size: 11px; color: var(--muted); }
+@media (max-width: 600px) { .head.with-art { flex-direction: column-reverse; align-items: flex-start; } .head-art { width: 140px; } }
 .pager { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn { display: inline-flex; align-items: center; gap: 6px; font: 700 14px var(--font-body); color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; text-decoration: none; cursor: pointer; }
 .btn:hover { background: var(--line); }

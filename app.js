@@ -612,7 +612,7 @@ addEventListener('hashchange', render);
     try { localStorage.setItem('year', String(YEAR)); } catch { }
     render();
   });
-  $('#foot').innerHTML = `<div class="made-by">${CFG.avatar ? `<img src="${esc(CFG.avatar)}" alt="" data-optional>` : ''}<p>Ce sont les statistiques d'écoute Spotify de <b>${esc(OWNER)}</b>, tirées de son historique complet, du ${dateFr(META.first)} au ${dateFr(META.last)}.${CFG.portraitCredit ? ` Portrait : ${esc(CFG.portraitCredit)}.` : ''}${CFG.avatarCredit ? ` Avatar : ${esc(CFG.avatarCredit)}.` : ''}</p></div>
+  $('#foot').innerHTML = `<div class="made-by">${CFG.avatar ? `<img src="${esc(CFG.avatar)}" alt="" data-optional>` : ''}<p>Ce sont les statistiques d'écoute Spotify de <b>${esc(OWNER)}</b>, tirées de son historique complet, du ${dateFr(META.first)} au ${dateFr(META.last)}.${CFG.portraitCredit ? ` Portrait : ${esc(CFG.portraitCredit)}.` : ''}${CFG.art2Credit ? ` Dessin du profil musical : ${esc(CFG.art2Credit)}.` : ''}${CFG.avatarCredit ? ` Avatar : ${esc(CFG.avatarCredit)}.` : ''}</p></div>
     <p>Le temps d'écoute compte tout ce que Spotify a vraiment joué, même en fond. Une « écoute » compte à partir de 30 secondes. Un titre est « passé » quand on a appuyé sur suivant. Heures de Paris.</p>
     <p>Pochettes : Spotify. Photos d'artistes, extraits de 30 s et années de sortie : Deezer. Tu veux les tiens ? <a href="#/tuto">Voici comment faire</a>.</p>`;
   render();
