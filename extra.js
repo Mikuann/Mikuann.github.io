@@ -28,7 +28,7 @@ const Player = {
     const p = Math.round(this.volume * 100), level = p === 0 ? 0 : p < 50 ? 1 : 2;
     document.querySelectorAll('.vol:not(.cvol) input').forEach(i => { i.value = p; i.style.setProperty('--p', p + '%'); });
     document.querySelectorAll('.vol:not(.cvol)').forEach(v => { v.dataset.level = level; });
-    document.querySelectorAll('.vol-ic').forEach(b => b.setAttribute('aria-label', p ? 'Couper le son' : 'Remettre le son'));
+    document.querySelectorAll('.vol-ic').forEach(b => b.setAttribute('aria-label', p ? L('Couper le son', 'Mute') : L('Remettre le son', 'Unmute')));
   },
   toggleMute() { this.setVolume(this.volume > 0 ? 0 : this.lastVol || 0.5); },
   setVolume(v) {
@@ -84,10 +84,10 @@ const Player = {
   ui() {
     const b = $('#player-btn'), t = this.cur, playing = this.on && !this.blocked;
     b.textContent = playing ? '❚❚' : '▶';
-    b.setAttribute('aria-label', playing ? 'Mettre la musique en pause' : 'Lancer la musique du site');
+    b.setAttribute('aria-label', playing ? L('Mettre la musique en pause', 'Pause the music') : L('Lancer la musique du site', 'Play the site music'));
     $('#player').classList.toggle('playing', playing);
     $('#player').classList.toggle('waiting', this.blocked);
-    $('#player-now').textContent = this.blocked ? 'Clique n’importe où pour la musique ♪' : playing && t ? `${t.name} · ${t.artist}` : 'Musique du site';
+    $('#player-now').textContent = this.blocked ? L('Clique n’importe où pour la musique ♪', 'Click anywhere for music ♪') : playing && t ? `${t.name} · ${t.artist}` : L('Musique du site', 'Site music');
   },
 };
 
@@ -108,7 +108,7 @@ const Lightbox = {
     this.el.className = 'lightbox';
     this.el.setAttribute('role', 'dialog');
     this.el.setAttribute('aria-label', 'Photo');
-    this.el.innerHTML = '<img alt=""><button type="button" class="lb-btn lb-prev" aria-label="Photo précédente">‹</button><button type="button" class="lb-btn lb-next" aria-label="Photo suivante">›</button><button type="button" class="lb-btn lb-x" aria-label="Fermer">×</button>';
+    this.el.innerHTML = `<img alt=""><button type="button" class="lb-btn lb-prev" aria-label="${L('Photo précédente', 'Previous photo')}">‹</button><button type="button" class="lb-btn lb-next" aria-label="${L('Photo suivante', 'Next photo')}">›</button><button type="button" class="lb-btn lb-x" aria-label="${L('Fermer', 'Close')}">×</button>`;
     this.el.addEventListener('click', e => {
       if (e.target.closest('.lb-prev')) return this.show(this.i - 1);
       if (e.target.closest('.lb-next')) return this.show(this.i + 1);
@@ -144,7 +144,7 @@ const NowPlaying = {
     if (!CFG.lastfmUser || !CFG.lastfmKey) return;
     this.el = document.createElement('button');
     this.el.type = 'button'; this.el.className = 'np idle';
-    this.el.setAttribute('aria-label', `Ce que ${OWNER} écoute`);
+    this.el.setAttribute('aria-label', L(`Ce que ${OWNER} écoute`, `What ${OWNER} is playing`));
     this.el.addEventListener('click', () => (this.toast && this.pinned ? this.hideToast() : this.showToast(true)));
     document.body.appendChild(this.el);
     this.poll();
@@ -235,7 +235,7 @@ const NowPlaying = {
     if (p && this.toast) {
       const el = this.toast.querySelector('.np-el'), rem = this.toast.querySelector('.np-rem');
       if (el) el.textContent = mmss(p.el);
-      if (rem) rem.textContent = p.rem > 1000 ? `−${mmss(p.rem)}` : 'bientôt fini';
+      if (rem) rem.textContent = p.rem > 1000 ? `−${mmss(p.rem)}` : L('bientôt fini', 'almost over');
     }
     if (Date.now() % 15000 < 1000) { // toutes les 15 s : durée de session
       this.render();
@@ -252,19 +252,19 @@ const NowPlaying = {
   sessionLine() {
     const s = this.session;
     if (!s) return '';
-    const n = `${s.capped ? '+ de ' : ''}${nf.format(s.count)} titre${s.count > 1 ? 's' : ''}`;
-    return s.live ? `En session depuis <b>${this.sessionLen()}</b> · ${n}` : `Dernière session : <b>${this.sessionLen()}</b> · ${n}`;
+    const n = `${s.capped ? L('+ de ', '') : ''}${nf.format(s.count)}${s.capped && EN ? '+' : ''} ${plural(s.count, 'titre', 'track')}`;
+    return s.live ? L(`En session depuis <b>${this.sessionLen()}</b> · ${n}`, `Listening for <b>${this.sessionLen()}</b> · ${n}`) : L(`Dernière session : <b>${this.sessionLen()}</b> · ${n}`, `Last session: <b>${this.sessionLen()}</b> · ${n}`);
   },
   ago(uts) {
     const m = Math.round((Date.now() / 1000 - uts) / 60);
-    if (m < 1) return 'à l’instant';
-    if (m < 60) return `il y a ${m} min`;
-    const d = new Date(uts * 1000), hm = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    return d.toDateString() === new Date().toDateString() ? hm : `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${hm}`;
+    if (m < 1) return L('à l’instant', 'just now');
+    if (m < 60) return L(`il y a ${m} min`, `${m} min ago`);
+    const d = new Date(uts * 1000), hm = d.toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString() ? hm : `${d.toLocaleDateString(LOC, { day: 'numeric', month: 'short' })} ${hm}`;
   },
   when() {
     const c = this.cur;
-    return c.now ? `${esc(OWNER)} écoute en ce moment` : c.uts ? `Écouté ${this.ago(c.uts)}` : 'Dernière écoute';
+    return c.now ? L(`${esc(OWNER)} écoute en ce moment`, `${esc(OWNER)} is listening now`) : c.uts ? L(`Écouté ${this.ago(c.uts)}`, `Played ${this.ago(c.uts)}`) : L('Dernière écoute', 'Last played');
   },
   render() {
     const c = this.cur;
@@ -280,7 +280,7 @@ const NowPlaying = {
       this.toast = document.createElement('div');
       this.toast.className = 'np-toast';
       this.toast.setAttribute('role', 'dialog');
-      this.toast.setAttribute('aria-label', `Ce que ${OWNER} écoute`);
+      this.toast.setAttribute('aria-label', L(`Ce que ${OWNER} écoute`, `What ${OWNER} is playing`));
       this.toast.addEventListener('click', e => {
         if (e.target.closest('.np-toast-x')) {
           if (!this.pinned) this.dismissed = this.keyOf(this.cur);
@@ -315,11 +315,11 @@ const NowPlaying = {
   },
   histHtml() {
     const s = this.session, items = this.recent.slice(0, 30);
-    if (!items.length) return '<li class="np-h-empty">Rien pour l’instant.</li>';
+    if (!items.length) return `<li class="np-h-empty">${L('Rien pour l’instant.', 'Nothing yet.')}</li>`;
     let divided = false;
     return items.map(t => {
       let sep = '';
-      if (s && !divided && t.uts && t.uts < s.start) { divided = true; sep = '<li class="np-h-sep">Avant</li>'; }
+      if (s && !divided && t.uts && t.uts < s.start) { divided = true; sep = `<li class="np-h-sep">${L('Avant', 'Earlier')}</li>`; }
       return `${sep}<li>${cover(this.imgOf(t), '')}<span class="np-h-t"><b>${esc(t.name)}</b><span>${esc(t.artist)}</span></span><time>${t.uts ? this.ago(t.uts) : ''}</time></li>`;
     }).join('');
   },
@@ -328,45 +328,46 @@ const NowPlaying = {
     if (!c || !t) return;
     const scroll = t.querySelector('.np-hist')?.scrollTop || 0;
     const hit = this.find(c), p = this.progress();
-    const stat = hit ? `${nf.format(hit.plays)} écoutes dans son historique · n°${nf.format(hit.rank)}` : (c.now ? 'Pas encore dans son historique : une découverte ?' : '');
+    const stat = hit ? L(`${nf.format(hit.plays)} écoutes dans son historique · n°${nf.format(hit.rank)}`, `${nf.format(hit.plays)} plays in the history · #${nf.format(hit.rank)}`) : (c.now ? L('Pas encore dans son historique : une découverte ?', 'Not in the history yet: a discovery?') : '');
     t.classList.toggle('open', this.expanded);
     t.classList.toggle('live', !!c.now);
-    t.innerHTML = `<button type="button" class="np-toast-x" aria-label="Fermer">×</button>
+    t.innerHTML = `<button type="button" class="np-toast-x" aria-label="${L('Fermer', 'Close')}">×</button>
       <div class="np-toast-main"><div class="np-toast-art">${cover(this.imgOf(c), '')}</div>
       <div class="np-toast-t"><small>${c.now ? '<span class="np-eq" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${this.when()}</small><b>${esc(c.name)}</b><span>${esc(c.artist)}</span>
       <p class="np-toast-s">${this.sessionLine()}</p>${stat ? `<p class="np-toast-h">${stat}</p>` : ''}</div></div>
-      ${p ? `<div class="np-prog"><div class="np-bar"><i style="width:${(p.frac * 100).toFixed(1)}%"></i></div><div class="np-times"><span class="np-el">${mmss(p.el)}</span><span class="np-rem">${p.rem > 1000 ? `−${mmss(p.rem)}` : 'bientôt fini'}</span><span class="np-dur">${mmss(p.dur)}</span></div></div>` : ''}
-      <div class="np-actions"><button type="button" class="np-more" aria-expanded="${this.expanded}">Historique <span>(${nf.format(Math.min(this.recent.length, 30))})</span><i aria-hidden="true">▾</i></button>${hit ? `<a class="np-link" href="${aTrack(hit.uri)}">Voir la fiche →</a>` : ''}</div>
+      ${p ? `<div class="np-prog"><div class="np-bar"><i style="width:${(p.frac * 100).toFixed(1)}%"></i></div><div class="np-times"><span class="np-el">${mmss(p.el)}</span><span class="np-rem">${p.rem > 1000 ? `−${mmss(p.rem)}` : L('bientôt fini', 'almost over')}</span><span class="np-dur">${mmss(p.dur)}</span></div></div>` : ''}
+      <div class="np-actions"><button type="button" class="np-more" aria-expanded="${this.expanded}">${L('Historique', 'History')} <span>(${nf.format(Math.min(this.recent.length, 30))})</span><i aria-hidden="true">▾</i></button>${hit ? `<a class="np-link" href="${aTrack(hit.uri)}">${L('Voir la fiche', 'Open its page')} →</a>` : ''}</div>
       <ol class="np-hist">${this.histHtml()}</ol>`;
     t.querySelector('.np-hist').scrollTop = scroll;
   },
 };
 
-// ---------- Livre d'or : petits messages des visiteurs (colonne de droite de l'accueil) ----------
+// ---------- Le chat (livre d'or) : colonne fixe à droite sur toutes les pages, messages visibles par tous ----------
 // Stockés dans Firestore (Firebase) via son API REST : lecture publique, création seulement (les règles limitent la taille).
-// Les messages se suppriment depuis la console Firebase.
-const GB_EMOJI = ['💜', '🔥', '😂', '🎧', '👀', '✨'];
+// Les messages se suppriment depuis la console Firebase. Toutes les 15 s, on ne récupère que les messages plus récents.
 const GB_COOLDOWN = 60e3;
+const GB_COLORS = ['--pink', '--violet', '--cyan', '--lime', '--orange', '--red', '--yellow'];
 const Guestbook = {
-  el: null, list: [], timer: 0, emoji: GB_EMOJI[0], sending: false,
+  el: null, list: [], ids: new Set(), lastAt: '', timer: 0, sending: false, open: false,
   get on() { return !!CFG.comments?.projectId; },
   base() { return `https://firestore.googleapis.com/v1/projects/${CFG.comments.projectId}/databases/(default)/documents`; },
   async req(path, body) {
-    const r = await fetch(`${this.base()}${path}${CFG.comments.apiKey ? `?key=${CFG.comments.apiKey}` : ''}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch(this.base() + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!r.ok) throw new Error(r.status);
     return r.json();
   },
-  async fetchAll() {
-    const rows = await this.req(':runQuery', { structuredQuery: { from: [{ collectionId: 'comments' }], orderBy: [{ field: { fieldPath: 'at' }, direction: 'DESCENDING' }], limit: 40 } });
-    return rows.filter(r => r.document).map(({ document: d }) => ({
+  async fetchSince(since) {
+    const q = { from: [{ collectionId: 'comments' }], orderBy: [{ field: { fieldPath: 'at' }, direction: since ? 'ASCENDING' : 'DESCENDING' }], limit: 60 };
+    if (since) q.where = { fieldFilter: { field: { fieldPath: 'at' }, op: 'GREATER_THAN', value: { timestampValue: since } } };
+    const rows = (await this.req(':runQuery', { structuredQuery: q })).filter(r => r.document).map(({ document: d }) => ({
       id: d.name.split('/').pop(), name: d.fields.name?.stringValue || '?', text: d.fields.text?.stringValue || '',
-      emoji: d.fields.emoji?.stringValue || '', at: Date.parse(d.fields.at?.timestampValue) || Date.now(),
+      iso: d.fields.at?.timestampValue || '', at: Date.parse(d.fields.at?.timestampValue) || Date.now(),
     }));
+    return since ? rows : rows.reverse();
   },
-  send(name, text, emoji) {
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  send(id, name, text) {
     return this.req(':commit', { writes: [{
-      update: { name: `projects/${CFG.comments.projectId}/databases/(default)/documents/comments/${id}`, fields: { name: { stringValue: name }, text: { stringValue: text }, emoji: { stringValue: emoji } } },
+      update: { name: `projects/${CFG.comments.projectId}/databases/(default)/documents/comments/${id}`, fields: { name: { stringValue: name }, text: { stringValue: text } } },
       currentDocument: { exists: false },
       updateTransforms: [{ fieldPath: 'at', setToServerValue: 'REQUEST_TIME' }],
     }] });
@@ -374,102 +375,128 @@ const Guestbook = {
   store(k, v) { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch { return null; } },
   ago(ms) {
     const m = Math.round((Date.now() - ms) / 60e3);
-    if (m < 1) return 'à l’instant';
-    if (m < 60) return `il y a ${m} min`;
-    if (m < 24 * 60) return `il y a ${Math.round(m / 60)} h`;
-    if (m < 7 * 24 * 60) return `il y a ${Math.round(m / 1440)} j`;
-    return new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: new Date(ms).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+    if (m < 1) return L('à l’instant', 'just now');
+    if (m < 60) return L(`il y a ${m} min`, `${m} min ago`);
+    if (m < 24 * 60) return L(`il y a ${Math.round(m / 60)} h`, `${Math.round(m / 60)} h ago`);
+    if (m < 7 * 24 * 60) return L(`il y a ${Math.round(m / 1440)} j`, `${Math.round(m / 1440)} d ago`);
+    return new Date(ms).toLocaleDateString(LOC, { day: 'numeric', month: 'short', year: new Date(ms).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
   },
-  hue: s => [...s].reduce((h, c) => (h * 31 + c.codePointAt(0)) % 360, 7),
-  // Appelé à chaque affichage de page : branche le panneau s'il est là, arrête le rafraîchissement sinon
-  mount(el) {
-    clearInterval(this.timer);
-    this.el = el;
-    if (!el || !this.on) return;
-    el.innerHTML = `<div class="gb-head"><h2>Le livre d’or</h2><p>Laisse un petit mot à ${esc(OWNER)}</p></div>
+  color: s => GB_COLORS[[...s.toLowerCase()].reduce((h, c) => (h * 31 + c.codePointAt(0)) % 9973, 7) % GB_COLORS.length],
+  init() {
+    if (!this.on) return;
+    document.body.classList.add('has-gb');
+    this.el = document.createElement('aside');
+    this.el.className = 'gb'; this.el.id = 'gb';
+    this.el.setAttribute('aria-label', L('Le chat', 'The chat'));
+    this.el.innerHTML = `<div class="gb-head"><div><h2>${L('Le chat', 'The chat')}</h2><p>${L(`Laisse un mot à ${esc(OWNER)}`, `Leave ${esc(OWNER)} a message`)} · <span class="gb-n">…</span></p></div>
+        <button type="button" class="gb-x" aria-label="${L('Fermer le chat', 'Close the chat')}">×</button></div>
+      <ol class="gb-list" aria-live="polite"><li class="gb-empty">${L('Chargement des messages…', 'Loading messages…')}</li></ol>
       <form class="gb-form" autocomplete="off">
-        <input class="gb-name" name="name" maxlength="24" placeholder="Ton pseudo" aria-label="Ton pseudo" required>
-        <div class="gb-text-w"><textarea class="gb-text" name="text" maxlength="280" rows="3" placeholder="Ton message…" aria-label="Ton message" required></textarea><span class="gb-count">280</span></div>
+        <input class="gb-name" name="name" maxlength="24" placeholder="${L('Ton pseudo', 'Your name')}" aria-label="${L('Ton pseudo', 'Your name')}" required>
+        <div class="gb-row"><textarea class="gb-text" name="text" maxlength="280" rows="2" placeholder="${L('Écris un message…', 'Write a message…')}" aria-label="${L('Ton message', 'Your message')}" required></textarea>
+        <button class="gb-send" type="submit" aria-label="${L('Envoyer', 'Send')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6 3.3 10l12.6 2-12.6 2z" fill="currentColor"/></svg></button></div>
         <input class="gb-hp" name="site" tabindex="-1" aria-hidden="true">
-        <div class="gb-row"><div class="gb-emo" role="radiogroup" aria-label="Humeur">${GB_EMOJI.map(e => `<button type="button" role="radio" aria-checked="${e === this.emoji}" data-e="${e}">${e}</button>`).join('')}</div>
-        <button class="btn gb-send" type="submit">Envoyer</button></div>
         <p class="gb-msg" role="status"></p>
-      </form>
-      <ol class="gb-list" aria-live="polite"><li class="gb-empty">Chargement des messages…</li></ol>`;
-    const f = $('.gb-form', el);
+      </form>`;
+    this.tab = document.createElement('button');
+    this.tab.type = 'button'; this.tab.className = 'gb-tab';
+    this.tab.innerHTML = `<span>${L('Le chat', 'Chat')}</span><b class="gb-n"></b>`;
+    this.tab.addEventListener('click', () => this.toggle(true));
+    document.body.append(this.el, this.tab);
+    $('.gb-x', this.el).addEventListener('click', () => this.toggle(false));
+    const f = $('.gb-form', this.el);
     f.name.value = this.store('gbName') || '';
-    f.text.addEventListener('input', () => { $('.gb-count', el).textContent = 280 - f.text.value.length; });
-    $('.gb-emo', el).addEventListener('click', e => {
-      const b = e.target.closest('button'); if (!b) return;
-      this.emoji = b.dataset.e;
-      $('.gb-emo', el).querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x === b));
-    });
+    f.text.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); f.requestSubmit(); } });
     f.addEventListener('submit', e => { e.preventDefault(); this.submit(f); });
-    this.refresh();
-    this.timer = setInterval(() => { if (!document.hidden) this.refresh(); }, 60e3);
+    this.load();
+    this.timer = setInterval(() => { if (!document.hidden) this.poll(); }, 15e3);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.poll(); });
   },
-  async refresh() {
-    const el = this.el;
-    try { this.list = await this.fetchAll(); } catch { if (el === this.el && !this.list.length) $('.gb-list', el).innerHTML = '<li class="gb-empty">Messages indisponibles pour le moment.</li>'; return; }
-    if (el === this.el) this.draw();
+  toggle(open) {
+    this.open = open;
+    document.body.classList.toggle('gb-open', open);
+    if (open) { this.scrollEnd(); $('.gb-text', this.el).focus({ preventScroll: true }); }
   },
+  add(rows) {
+    let added = 0;
+    for (const r of rows) {
+      if (r.iso > this.lastAt) this.lastAt = r.iso;
+      if (this.ids.has(r.id)) continue;
+      this.ids.add(r.id); this.list.push(r); added++;
+    }
+    return added;
+  },
+  async load() {
+    try { this.add(await this.fetchSince('')); } catch { $('.gb-list', this.el).innerHTML = `<li class="gb-empty">${L('Messages indisponibles pour le moment.', 'Messages unavailable right now.')}</li>`; return; }
+    this.draw(); this.scrollEnd();
+  },
+  async poll() {
+    if (!this.lastAt) return this.load();
+    let rows; try { rows = await this.fetchSince(this.lastAt); } catch { return; }
+    const ul = $('.gb-list', this.el), atEnd = ul.scrollHeight - ul.scrollTop - ul.clientHeight < 60;
+    if (this.add(rows)) { this.draw(); if (atEnd) this.scrollEnd(); } else this.draw(); // redessine aussi pour les « il y a … »
+  },
+  scrollEnd() { const ul = $('.gb-list', this.el); ul.scrollTop = ul.scrollHeight; },
   draw() {
-    const ul = $('.gb-list', this.el);
-    ul.innerHTML = this.list.length ? this.list.map(c => `<li class="${c.mine ? 'mine' : ''}"><span class="gb-av" style="--h:${this.hue(c.name)}" aria-hidden="true">${esc([...c.name][0].toUpperCase())}</span>
-      <div class="gb-b"><div class="gb-meta"><b>${esc(c.name)}</b>${c.emoji ? `<span>${esc(c.emoji)}</span>` : ''}<time>${this.ago(c.at)}</time></div><p>${esc(c.text)}</p></div></li>`).join('')
-      : '<li class="gb-empty">Aucun message pour l’instant. Sois le premier !</li>';
+    const ul = $('.gb-list', this.el), n = this.list.length;
+    this.el.querySelectorAll('.gb-n').forEach(x => { x.textContent = n; });
+    $('.gb-head .gb-n', this.el).textContent = `${nf.format(n)} ${plural(n, 'message', 'message')}`;
+    ul.innerHTML = n ? this.list.map(c => `<li class="${c.mine ? 'mine' : ''}" style="--c:var(${this.color(c.name)})">
+      <div class="gb-meta"><b>${esc(c.name)}</b><time>${this.ago(c.at)}</time></div><p>${esc(c.text)}</p></li>`).join('')
+      : `<li class="gb-empty">${L('Aucun message pour l’instant. Lance la discussion !', 'No messages yet. Start the conversation!')}</li>`;
   },
   async submit(f) {
     const msg = $('.gb-msg', this.el), say = (t, bad) => { msg.textContent = t; msg.classList.toggle('bad', !!bad); };
     const name = f.name.value.trim().replace(/\s+/g, ' '), text = f.text.value.trim();
     if (f.site.value || this.sending) return; // champ piège rempli = robot
-    if (!name || !text) return say('Il faut un pseudo et un message.', true);
-    if (npNorm(name) === npNorm(OWNER)) return say(`Ce pseudo est réservé à ${OWNER}.`, true);
+    if (!name) { f.name.focus(); return say(L('Choisis un pseudo d’abord.', 'Pick a name first.'), true); }
+    if (!text) return;
+    if (npNorm(name) === npNorm(OWNER)) return say(L(`Ce pseudo est réservé à ${OWNER}.`, `This name is reserved for ${OWNER}.`), true);
     const wait = +(this.store('gbLast') || 0) + GB_COOLDOWN - Date.now();
-    if (wait > 0) return say(`Attends encore ${Math.ceil(wait / 1000)} s avant d’envoyer un autre message.`, true);
-    this.sending = true; f.querySelector('.gb-send').disabled = true; say('Envoi…');
+    if (wait > 0) return say(L(`Attends encore ${Math.ceil(wait / 1000)} s avant le prochain message.`, `Wait ${Math.ceil(wait / 1000)} more seconds before the next message.`), true);
+    this.sending = true; f.querySelector('.gb-send').disabled = true; say('');
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     try {
-      await this.send(name, text, this.emoji);
+      await this.send(id, name, text);
       this.store('gbName', name); this.store('gbLast', Date.now());
-      this.list.unshift({ id: 'local', name, text, emoji: this.emoji, at: Date.now(), mine: true });
-      this.draw();
-      f.text.value = ''; $('.gb-count', this.el).textContent = 280;
-      say('Merci, ton message est publié !');
-    } catch { say('Oups, l’envoi a raté. Réessaie dans un moment.', true); }
+      this.ids.add(id); this.list.push({ id, name, text, at: Date.now(), mine: true });
+      this.draw(); this.scrollEnd();
+      f.text.value = '';
+    } catch { say(L('Oups, l’envoi a raté. Réessaie dans un moment.', 'Oops, sending failed. Try again in a moment.'), true); }
     this.sending = false; f.querySelector('.gb-send').disabled = false;
   },
 };
 
 // ---------- Pages en plus ----------
-const mainstreamWord = v => v >= 70 ? 'très grand public' : v >= 55 ? 'plutôt grand public' : v >= 40 ? 'entre les deux' : 'plutôt pointu';
+const mainstreamWord = v => v >= 70 ? L('très grand public', 'very mainstream') : v >= 55 ? L('plutôt grand public', 'fairly mainstream') : v >= 40 ? L('entre les deux', 'in between') : L('plutôt pointu', 'fairly niche');
 const EXTRA_PAGES = {
   async profil() {
     const p = await api('profile');
-    if (!p || !p.coverage) { main.innerHTML = `<h1>Profil musical</h1><p class="lede">Pas encore assez d'infos sur les titres pour cette période.</p>`; return; }
+    if (!p || !p.coverage) { main.innerHTML = `<h1>${L('Profil musical', 'Music profile')}</h1><p class="lede">${L("Pas encore assez d'infos sur les titres pour cette période.", 'Not enough track info for this period yet.')}</p>`; return; }
     const age = p.age, pos = Math.max(0, Math.min(1, (age - 12) / 48)) * 100, topDec = p.decades.reduce((a, b) => (b.hours > a.hours ? b : a));
     const trackList = (list, val, metric) => hlist(list.map(t => ({ ...t })), { img: t => pic.track(t.uri), href: t => aTrack(t.uri), sub: t => esc(t.artist), val, metric });
     main.innerHTML = `
-      <div class="head${CFG.art2 ? ' with-art' : ''}"><div><h1>Le profil musical de ${esc(OWNER)} ${yearLabel()}</h1><p class="lede">Calculé à partir de l'année de sortie, de la popularité et du tempo des titres identifiés, soit <b>${pct(p.coverage)}</b> du temps d'écoute.</p></div>${CFG.art2 ? `<figure class="head-art"><img src="${esc(CFG.art2)}" alt="" data-optional>${CFG.art2Credit ? `<figcaption>Art : ${esc(CFG.art2Credit)}</figcaption>` : ''}</figure>` : ''}</div>
+      <div class="head${CFG.art2 ? ' with-art' : ''}"><div><h1>${L(`Le profil musical de ${esc(OWNER)}`, `${esc(OWNER)}’s music profile`)} ${yearLabel()}</h1><p class="lede">${L(`Calculé à partir de l'année de sortie, de la popularité et du tempo des titres identifiés, soit <b>${pct(p.coverage)}</b> du temps d'écoute.`, `Based on the release year, popularity and tempo of the identified tracks, covering <b>${pct(p.coverage)}</b> of the listening time.`)}</p></div>${CFG.art2 ? `<figure class="head-art"><img src="${esc(CFG.art2)}" alt="" data-optional>${CFG.art2Credit ? `<figcaption>Art : ${esc(CFG.art2Credit)}</figcaption>` : ''}</figure>` : ''}</div>
       <div class="grid">
-        ${card('Âge musical estimé', `<div class="age-hero"><span class="age-num">${age}<small> ans</small></span><div><p class="note" style="font-size:15px">La musique écoutée est sortie en moyenne en <b>${Math.round(p.meanYear)}</b> (médiane : ${p.medianYear}). On écoute surtout la musique sortie autour de nos 16 ans, alors ce profil correspond à quelqu'un d'environ <b>${age} ans</b> en ${p.refYear}.</p><div class="meter"><i style="left:${pos.toFixed(1)}%"></i></div><div class="meter-l"><span>12 ans</span><span>24</span><span>36</span><span>48</span><span>60 ans</span></div></div></div>`, { note: 'Une estimation pour le fun : elle ne connaît pas le vrai âge, seulement les goûts.', wide: true })}
+        ${card(L('Âge musical estimé', 'Estimated musical age'), `<div class="age-hero"><span class="age-num">${age}<small>${L(' ans', ' yrs')}</small></span><div><p class="note" style="font-size:15px">${L(`La musique écoutée est sortie en moyenne en <b>${Math.round(p.meanYear)}</b> (médiane : ${p.medianYear}). On écoute surtout la musique sortie autour de nos 16 ans, alors ce profil correspond à quelqu'un d'environ <b>${age} ans</b> en ${p.refYear}.`, `The music played came out in <b>${Math.round(p.meanYear)}</b> on average (median: ${p.medianYear}). We mostly listen to music released around when we were 16, so this profile matches someone about <b>${age}</b> in ${p.refYear}.`)}</p><div class="meter"><i style="left:${pos.toFixed(1)}%"></i></div><div class="meter-l"><span>12${L(' ans', '')}</span><span>24</span><span>36</span><span>48</span><span>60${L(' ans', '')}</span></div></div></div>`, { note: L('Une estimation pour le fun : elle ne connaît pas le vrai âge, seulement les goûts.', 'A just-for-fun estimate: it doesn’t know the real age, only the taste.'), wide: true })}
       </div>
       <div class="kpis">
-        ${kpi('Grand public', `${Math.round(p.mainstream)}/100`, mainstreamWord(p.mainstream))}
-        ${kpi('Nouveautés', pct(p.freshShare), 'du temps sur des titres sortis depuis moins d’un an')}
-        ${kpi('Décennie n°1', `${topDec.decade}s`, `${pct(topDec.share)} du temps`)}
-        ${kpi('Paroles explicites', pct(p.explicitShare), 'du temps d’écoute')}
-        ${p.bpm ? kpi('Tempo moyen', `${Math.round(p.bpm)} BPM`, `mesuré sur ${pct(p.bpmShare)} du temps`) : ''}
-        ${kpi('Année médiane', String(p.medianYear), 'la moitié du temps va à plus ancien')}
+        ${kpi(L('Grand public', 'Mainstream'), `${Math.round(p.mainstream)}/100`, mainstreamWord(p.mainstream))}
+        ${kpi(L('Nouveautés', 'New releases'), pct(p.freshShare), L('du temps sur des titres sortis depuis moins d’un an', 'of the time on tracks under a year old'))}
+        ${kpi(L('Décennie n°1', 'Top decade'), `${topDec.decade}s`, L(`${pct(topDec.share)} du temps`, `${pct(topDec.share)} of the time`))}
+        ${kpi(L('Paroles explicites', 'Explicit lyrics'), pct(p.explicitShare), L('du temps d’écoute', 'of listening time'))}
+        ${p.bpm ? kpi(L('Tempo moyen', 'Average tempo'), `${Math.round(p.bpm)} BPM`, L(`mesuré sur ${pct(p.bpmShare)} du temps`, `measured on ${pct(p.bpmShare)} of the time`)) : ''}
+        ${kpi(L('Année médiane', 'Median year'), String(p.medianYear), L('la moitié du temps va à plus ancien', 'half the time goes to older music'))}
       </div>
       <div class="grid">
-        ${card('Les époques', `<div class="chart" id="c-rel" style="min-height:260px"></div>`, { note: "Heures d'écoute selon l'année de sortie des titres. Une réédition compte à sa date de sortie.", wide: true })}
-        ${card('Par décennie', `<div class="chart" id="c-dec" style="min-height:300px"></div>`)}
-        ${p.bpmHist.length ? card('Le tempo', `<div class="chart" id="c-bpm"></div>`, { note: 'Heures écoutées par tranche de BPM (battements par minute).' }) : ''}
-        ${card('Popularité et année de sortie', `<div class="chart" id="c-sc" style="min-height:360px"></div>`, { note: 'Chaque bulle est un titre (les 300 plus écoutés), plus elle est grosse, plus il a tourné. En haut : les tubes, en bas : les pépites. Clique pour la fiche.', wide: true })}
-        ${card('Les plus anciens', trackList(p.oldest, t => t.rel.slice(0, 4), t => t.plays))}
-        ${card('Les plus récents', trackList(p.newest, t => dateFr(t.rel), t => t.plays))}
-        ${card('Les plus grand public', trackList(p.popular, t => `${Math.round(t.rank / 10000)}/100`, t => t.rank))}
-        ${card('Les pépites les plus pointues', trackList(p.niche, t => `${Math.round(t.rank / 10000)}/100`, t => t.rank))}
+        ${card(L('Les époques', 'The eras'), `<div class="chart" id="c-rel" style="min-height:260px"></div>`, { note: L("Heures d'écoute selon l'année de sortie des titres. Une réédition compte à sa date de sortie.", 'Listening hours by the tracks’ release year. A reissue counts at its release date.'), wide: true })}
+        ${card(L('Par décennie', 'By decade'), `<div class="chart" id="c-dec" style="min-height:300px"></div>`)}
+        ${p.bpmHist.length ? card(L('Le tempo', 'The tempo'), `<div class="chart" id="c-bpm"></div>`, { note: L('Heures écoutées par tranche de BPM (battements par minute).', 'Hours played per BPM range (beats per minute).') }) : ''}
+        ${card(L('Popularité et année de sortie', 'Popularity and release year'), `<div class="chart" id="c-sc" style="min-height:360px"></div>`, { note: L('Chaque bulle est un titre (les 300 plus écoutés), plus elle est grosse, plus il a tourné. En haut : les tubes, en bas : les pépites. Clique pour la fiche.', 'Each bubble is a track (the 300 most played); the bigger it is, the more it played. Top: the hits, bottom: the hidden gems. Click for its page.'), wide: true })}
+        ${card(L('Les plus anciens', 'The oldest'), trackList(p.oldest, t => t.rel.slice(0, 4), t => t.plays))}
+        ${card(L('Les plus récents', 'The newest'), trackList(p.newest, t => dateFr(t.rel), t => t.plays))}
+        ${card(L('Les plus grand public', 'The most mainstream'), trackList(p.popular, t => `${Math.round(t.rank / 10000)}/100`, t => t.rank))}
+        ${card(L('Les pépites les plus pointues', 'The most niche gems'), trackList(p.niche, t => `${Math.round(t.rank / 10000)}/100`, t => t.rank))}
       </div>`;
     chart('c-rel', el => releaseChart(el, p.relYears, p.medianYear));
     chart('c-dec', el => donut(el, p.decades));
@@ -478,6 +505,22 @@ const EXTRA_PAGES = {
   },
 
   async tuto() {
+    if (EN) {
+      main.innerHTML = `
+      <div class="head"><h1>Get your own Spotify stats</h1><p class="lede">Spotify keeps everything you’ve played since you created your account, even without a tracking app. Thanks to data-protection law (GDPR), you can get that history for free. Here’s how.</p></div>
+      <ol class="steps">
+        <li><h3>Open your account’s Privacy page</h3><p>From a browser (not the app), go to <a href="https://www.spotify.com/account/privacy/" target="_blank" rel="noopener">spotify.com/account/privacy</a> and log in.</p></li>
+        <li><h3>Tick “Extended streaming history”</h3><p>Scroll down to “Download your data”. It’s the only box you need for complete stats: it holds every play since the start.</p>
+          <div class="mock"><span class="box"></span>Account data</div>
+          <div class="mock"><span class="box on"></span><b>Extended streaming history</b></div></li>
+        <li><h3>Click “Request data” and confirm the email</h3><p>Spotify sends you a confirmation email. Click the link inside, or the request won’t go through.</p></li>
+        <li><h3>Wait</h3><p>Spotify says up to 30 days, but it often takes a few days. You’ll get an email with a <code>my_spotify_data.zip</code> file to download.</p></li>
+        <li><h3>Look at your stats</h3><p>The zip holds <code>Streaming_History_Audio_….json</code> files: one line per play, with the date, track, artist and duration. You can import them into <a href="https://stats.fm" target="_blank" rel="noopener">stats.fm</a> (free), or ask an AI to build you a site like this one.</p></li>
+        <li><h3>Don’t share the file as is</h3><p>The export also contains your IP addresses and devices. This site only publishes computed stats, never the raw file.</p></li>
+        <li><h3>Bonus: what you play live</h3><p>Create a <a href="https://www.last.fm" target="_blank" rel="noopener">Last.fm</a> account and link it to Spotify in its settings (Applications). Every track is then recorded in real time: that’s what powers this site’s “now playing” badge.</p></li>
+      </ol>`;
+      return;
+    }
     main.innerHTML = `
       <div class="head"><h1>Avoir tes propres stats Spotify</h1><p class="lede">Spotify garde tout ce que tu écoutes depuis la création de ton compte, même sans appli de suivi. Grâce au RGPD, tu peux récupérer cet historique gratuitement. Voici comment.</p></div>
       <ol class="steps">

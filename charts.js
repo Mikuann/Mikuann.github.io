@@ -2,8 +2,8 @@
 // Graphiques avancés (d3) : flux des artistes, course au n°1, compteur cumulé, horloge, mosaïque, époques, popularité.
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const PALETTE = () => ['--violet', '--pink', '--lime', '--cyan', '--orange', '--red', '--yellow', '--muted'].map(css);
-const MONTHS_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-const hFmt = h => h >= 100 ? Math.round(h).toLocaleString('fr-FR') + ' h' : h >= 1 ? h.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' h' : Math.round(h * 60) + ' min';
+const MONTHS_SHORT = L(['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'], ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
+const hFmt = h => h >= 100 ? Math.round(h).toLocaleString(LOC) + ' h' : h >= 1 ? h.toLocaleString(LOC, { maximumFractionDigits: 1 }) + ' h' : Math.round(h * 60) + ' min';
 const escH = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const tipOn = (sel, html) => sel.on('mousemove', (e, d) => showTip(html(d, e), e)).on('mouseleave', hideTip);
 function frame(el, height, m) {
@@ -57,7 +57,7 @@ function bumpChart(el, artists, nMonths) {
     a.months.forEach((m, k) => {
       if (m.rank == null) return;
       g.append('circle').attr('cx', x(k)).attr('cy', y(clampR(m.rank))).attr('r', 4).attr('fill', col)
-        .on('mousemove', e => showTip(`<b>${escH(a.name)}</b><br><span class="t-d">${MONTHS_SHORT[k]}</span> · ${m.rank > maxRank ? 'hors top ' + maxRank : 'n°' + m.rank} · ${hFmt(m.hours)}`, e)).on('mouseleave', hideTip);
+        .on('mousemove', e => showTip(`<b>${escH(a.name)}</b><br><span class="t-d">${MONTHS_SHORT[k]}</span> · ${m.rank > maxRank ? L('hors top ', 'outside top ') + maxRank : L('n°', '#') + m.rank} · ${hFmt(m.hours)}`, e)).on('mouseleave', hideTip);
     });
     const lastK = d3.range(nMonths).reverse().find(k => a.months[k].rank != null);
     if (lastK == null || a.months[lastK].rank > maxRank) return; // photo seulement si l'artiste est dans le top à la fin
@@ -78,7 +78,7 @@ function cumulChart(el, cur, prev) {
   const x = d3.scaleLinear([1, Math.max(n, 2)], [0, f.iw]);
   const y = d3.scaleLinear([0, d3.max([...cur, ...(prev || [])])], [f.ih, 0]).nice();
   const c1 = css('--violet'), c0 = css('--muted');
-  f.g.append('g').call(d3.axisLeft(y).ticks(4).tickSize(-f.iw).tickFormat(v => v ? Math.round(v).toLocaleString('fr-FR') + ' h' : '0')).call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', css('--line'))).attr('font-size', null).attr('font-family', null);
+  f.g.append('g').call(d3.axisLeft(y).ticks(4).tickSize(-f.iw).tickFormat(v => v ? Math.round(v).toLocaleString(LOC) + ' h' : '0')).call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', css('--line'))).attr('font-size', null).attr('font-family', null);
   const monthStarts = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
   f.g.append('g').selectAll('text').data(monthStarts.map((d, i) => [d, i]).filter(([d]) => d <= n)).join('text').attr('x', ([d]) => x(d)).attr('y', f.ih + 18).text(([, i]) => MONTHS_SHORT[i]).attr('text-anchor', 'start');
   const grad = f.svg.append('defs').append('linearGradient').attr('id', 'cg').attr('x2', 0).attr('y2', 1);
@@ -98,8 +98,8 @@ function cumulChart(el, cur, prev) {
     .on('mousemove', e => {
       const d = Math.max(1, Math.min(n, Math.round(x.invert(d3.pointer(e)[0]))));
       rule.attr('x1', x(d)).attr('x2', x(d)).attr('opacity', .5);
-      const date = new Date(Date.UTC(2001, 0, d)).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'UTC' });
-      showTip(`<span class="t-d">au ${date}</span><br>${cur[d - 1] != null ? `<b>${hFmt(cur[d - 1])}</b> cette année` : ''}${prev && prev[d - 1] != null ? `<br>${hFmt(prev[d - 1])} l'année d'avant` : ''}`, e);
+      const date = new Date(Date.UTC(2001, 0, d)).toLocaleDateString(LOC, { day: 'numeric', month: 'long', timeZone: 'UTC' });
+      showTip(`<span class="t-d">${L('au', 'by')} ${date}</span><br>${cur[d - 1] != null ? `<b>${hFmt(cur[d - 1])}</b> ${L('cette année', 'this year')}` : ''}${prev && prev[d - 1] != null ? `<br>${hFmt(prev[d - 1])} ${L("l'année d'avant", 'the year before')}` : ''}`, e);
     }).on('mouseleave', () => { rule.attr('opacity', 0); hideTip(); });
 }
 
@@ -117,7 +117,7 @@ function radialClock(el, hours) {
     .attr('x', h => Math.sin(h / 24 * 2 * Math.PI) * (R + 14)).attr('y', h => -Math.cos(h / 24 * 2 * Math.PI) * (R + 14) + 4).text(h => h + ' h');
   const best = data.reduce((a, b) => (b.v > a.v ? b : a));
   svg.append('text').attr('text-anchor', 'middle').attr('y', -2).attr('class', 'lbl').style('font-size', '20px').text(best.h + ' h');
-  svg.append('text').attr('text-anchor', 'middle').attr('y', 16).text('heure de pointe');
+  svg.append('text').attr('text-anchor', 'middle').attr('y', 16).text(L('heure de pointe', 'peak hour'));
 }
 
 // Mosaïque : treemap des artistes avec leur photo en fond
@@ -142,7 +142,7 @@ function treemap(el, artists) {
   const fade = defs.append('linearGradient').attr('id', 'tmfade').attr('x2', 0).attr('y2', 1);
   fade.append('stop').attr('offset', 0).attr('stop-color', '#000').attr('stop-opacity', 0);
   fade.append('stop').attr('offset', 1).attr('stop-color', '#000').attr('stop-opacity', .85);
-  tipOn(leaf, d => `<b>${escH(d.data.name)}</b><br>${hFmt(d.data.hours)} · ${d.data.plays.toLocaleString('fr-FR')} écoutes`);
+  tipOn(leaf, d => `<b>${escH(d.data.name)}</b><br>${hFmt(d.data.hours)} · ${d.data.plays.toLocaleString(LOC)} ${L('écoutes', 'plays')}`);
 }
 
 // Époques : heures par année de sortie, avec la médiane
@@ -151,16 +151,16 @@ function releaseChart(el, years, median) {
   const x0 = Math.max(d3.min(years, d => d.year), 1960), x1 = d3.max(years, d => d.year);
   const data = years.filter(d => d.year >= x0);
   const x = d3.scaleBand(d3.range(x0, x1 + 1), [0, f.iw]).padding(.15), y = d3.scaleLinear([0, d3.max(data, d => d.hours)], [f.ih, 0]).nice();
-  f.g.append('g').call(d3.axisLeft(y).ticks(4).tickSize(-f.iw).tickFormat(v => v ? Math.round(v).toLocaleString('fr-FR') + ' h' : '0')).call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', css('--line'))).attr('font-size', null).attr('font-family', null);
+  f.g.append('g').call(d3.axisLeft(y).ticks(4).tickSize(-f.iw).tickFormat(v => v ? Math.round(v).toLocaleString(LOC) + ' h' : '0')).call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', css('--line'))).attr('font-size', null).attr('font-family', null);
   const col = d3.scaleLinear([x0, x1], [css('--cyan'), css('--pink')]);
   tipOn(f.g.selectAll('rect.b').data(data).join('rect').attr('class', 'b').attr('x', d => x(d.year)).attr('width', x.bandwidth()).attr('y', d => y(d.hours)).attr('height', d => f.ih - y(d.hours)).attr('rx', Math.min(3, x.bandwidth() / 2)).attr('fill', d => col(d.year)),
-    d => `<span class="t-d">Sortis en ${d.year}</span><br><b>${hFmt(d.hours)}</b>`);
+    d => `<span class="t-d">${L('Sortis en', 'Released in')} ${d.year}</span><br><b>${hFmt(d.hours)}</b>`);
   const step = Math.ceil(36 / Math.max(1, x.bandwidth()));
   f.g.append('g').selectAll('text').data(x.domain().filter((d, i, all) => (i % step === 0 && all.length - 1 - i >= step) || d === x1)).join('text').attr('x', d => x(d) + x.bandwidth() / 2).attr('y', f.ih + 18).attr('text-anchor', 'middle').text(d => d);
   if (x(median) != null) {
     const mx = x(median) + x.bandwidth() / 2;
     f.g.append('line').attr('x1', mx).attr('x2', mx).attr('y1', -6).attr('y2', f.ih).attr('stroke', css('--fg')).attr('stroke-dasharray', '4 3');
-    f.g.append('text').attr('x', mx - 6).attr('y', -6).attr('text-anchor', 'end').attr('class', 'lbl').text('médiane ' + median);
+    f.g.append('text').attr('x', mx - 6).attr('y', -6).attr('text-anchor', 'end').attr('class', 'lbl').text(L('médiane ', 'median ') + median);
   }
 }
 
@@ -172,13 +172,13 @@ function donut(el, decades) {
   const svg = wrap.append('svg').attr('viewBox', `${-size / 2} ${-size / 2} ${size} ${size}`).attr('width', size).attr('height', size).style('width', size + 'px');
   const pie = d3.pie().value(d => d.hours).sort(null), arc = d3.arc().innerRadius(R * .58).outerRadius(R).padAngle(.015).cornerRadius(5);
   tipOn(svg.selectAll('path').data(pie(decades)).join('path').attr('d', arc).attr('fill', (d, i) => colors[i % colors.length]),
-    d => `<b>Années ${d.data.decade}</b><br>${hFmt(d.data.hours)} · ${(d.data.share * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`);
+    d => `<b>${L(`Années ${d.data.decade}`, `${d.data.decade}s`)}</b><br>${hFmt(d.data.hours)} · ${(d.data.share * 100).toLocaleString(LOC, { maximumFractionDigits: 1 })} %`);
   const top = decades.reduce((a, b) => (b.hours > a.hours ? b : a));
   svg.append('text').attr('text-anchor', 'middle').attr('y', 2).attr('class', 'lbl').style('font-size', '24px').text(`${top.decade}s`);
-  svg.append('text').attr('text-anchor', 'middle').attr('y', 22).text('décennie n°1');
+  svg.append('text').attr('text-anchor', 'middle').attr('y', 22).text(L('décennie n°1', 'top decade'));
   const lg = wrap.append('ul').style('list-style', 'none').style('margin', 0).style('padding', 0).style('display', 'grid').style('gap', '6px');
   decades.forEach((d, i) => lg.append('li').style('display', 'flex').style('gap', '8px').style('align-items', 'center').style('font-size', '14px').style('font-weight', 600)
-    .html(`<i style="width:12px;height:12px;border-radius:3px;background:${colors[i % colors.length]}"></i>Années ${d.decade} <span style="color:var(--muted)">${(d.share * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</span>`));
+    .html(`<i style="width:12px;height:12px;border-radius:3px;background:${colors[i % colors.length]}"></i>${L(`Années ${d.decade}`, `${d.decade}s`)} <span style="color:var(--muted)">${(d.share * 100).toLocaleString(LOC, { maximumFractionDigits: 1 })} %</span>`));
 }
 
 // Nuage : chaque titre placé par année de sortie et popularité, taille = temps d'écoute
@@ -191,9 +191,9 @@ function scatter(el, tracks) {
   const r = d3.scaleSqrt([0, d3.max(data, d => d.hours)], [2, 18]);
   f.g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(-f.iw)).call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', css('--line'))).attr('font-size', null).attr('font-family', null);
   f.g.append('g').selectAll('text').data(yearTicks).join('text').attr('x', yr => x(ref - yr)).attr('y', f.ih + 20).attr('text-anchor', 'middle').text(yr => yr);
-  f.g.append('text').attr('x', -36).attr('y', -4).text('popularité');
+  f.g.append('text').attr('x', -36).attr('y', -4).text(L('popularité', 'popularity'));
   const col = d3.scaleLinear([0, 50, 100], [css('--cyan'), css('--violet'), css('--pink')]);
   const dots = f.g.selectAll('circle').data(data.sort((a, b) => b.hours - a.hours)).join('circle').attr('cx', d => x(ago(d))).attr('cy', d => y(d.rank / 10000)).attr('r', d => r(d.hours))
     .attr('fill', d => col(d.rank / 10000)).attr('fill-opacity', .7).attr('stroke', css('--stage')).style('cursor', 'pointer').on('click', (e, d) => { location.hash = aTrack(d.uri); });
-  tipOn(dots, d => `${cover(pic.track(d.uri), '')}<b>${escH(d.name)}</b><br>${escH(d.artist)}<br><span class="t-d">${d.year} · popularité ${Math.round(d.rank / 10000)}/100 · ${hFmt(d.hours)}</span>`);
+  tipOn(dots, d => `${cover(pic.track(d.uri), '')}<b>${escH(d.name)}</b><br>${escH(d.artist)}<br><span class="t-d">${d.year} · ${L('popularité', 'popularity')} ${Math.round(d.rank / 10000)}/100 · ${hFmt(d.hours)}</span>`);
 }

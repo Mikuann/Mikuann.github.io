@@ -8,45 +8,47 @@
 <link rel="icon" href="img/avatar.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="style.css?v=mvtgih5u">
+<link rel="stylesheet" href="style.css?v=mvth1f7m">
 </head>
 <body>
 <header class="top">
   <div class="top-in">
-    <a class="brand" href="#/"><img id="brand-av" class="brand-av" alt="" data-optional><span><span id="brand-name">Mikuan</span><small>stats Spotify</small></span></a>
+    <a class="brand" href="#/"><img id="brand-av" class="brand-av" alt="" data-optional><span><span id="brand-name">Mikuan</span><small data-en="Spotify stats">stats Spotify</small></span></a>
     <div class="top-tools">
       <div class="player" id="player">
-        <button type="button" class="player-btn" id="player-btn" aria-label="Lancer la musique du site">▶</button>
-        <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="player-now" id="player-now">Musique du site</span>
-        <div class="vol"><input type="range" id="vol" min="0" max="100" value="50" aria-label="Volume de la musique"></div>
+        <button type="button" class="player-btn" id="player-btn" aria-label="Lancer la musique du site" data-en-label="Play the site music">▶</button>
+        <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="player-now" id="player-now" data-en="Site music">Musique du site</span>
+        <div class="vol"><input type="range" id="vol" min="0" max="100" value="50" aria-label="Volume de la musique" data-en-label="Music volume"></div>
       </div>
       <label class="year">
-        <span>Année</span>
-        <select id="year" aria-label="Année affichée"></select>
+        <span data-en="Year">Année</span>
+        <select id="year" aria-label="Année affichée" data-en-label="Year shown"></select>
       </label>
+      <div class="lang" role="group" aria-label="Langue / Language"><button type="button" data-lang="fr" aria-pressed="true">FR</button><button type="button" data-lang="en" aria-pressed="false">EN</button></div>
     </div>
   </div>
   <nav class="tabs" id="tabs">
-    <a href="#/" data-tab="">Vue d'ensemble</a>
-    <a href="#/profil" data-tab="profil">Profil musical</a>
-    <a href="#/mois" data-tab="mois">Mois</a>
-    <a href="#/artistes" data-tab="artistes">Artistes</a>
-    <a href="#/titres" data-tab="titres">Titres</a>
-    <a href="#/albums" data-tab="albums">Albums</a>
-    <a href="#/habitudes" data-tab="habitudes">Habitudes</a>
-    <a href="#/decouvertes" data-tab="decouvertes">Découvertes</a>
-    <a href="#/tuto" data-tab="tuto">Avoir tes stats</a>
+    <a href="#/" data-tab="" data-en="Overview">Vue d'ensemble</a>
+    <a href="#/profil" data-tab="profil" data-en="Music profile">Profil musical</a>
+    <a href="#/mois" data-tab="mois" data-en="Months">Mois</a>
+    <a href="#/artistes" data-tab="artistes" data-en="Artists">Artistes</a>
+    <a href="#/titres" data-tab="titres" data-en="Tracks">Titres</a>
+    <a href="#/albums" data-tab="albums" data-en="Albums">Albums</a>
+    <a href="#/habitudes" data-tab="habitudes" data-en="Habits">Habitudes</a>
+    <a href="#/decouvertes" data-tab="decouvertes" data-en="Discoveries">Découvertes</a>
+    <a href="#/tuto" data-tab="tuto" data-en="Get your stats">Avoir tes stats</a>
   </nav>
 </header>
-<main id="main" class="wrap"><p class="loading">Chargement…</p></main>
+<main id="main" class="wrap"><p class="loading" data-en="Loading…">Chargement…</p></main>
 <footer class="wrap foot" id="foot"></footer>
 <div id="tip" class="tip" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script>window.STATIC_SITE = true; window.BUILD = 'mvtgih5u';</script>
-<script src="config.js?v=mvtgih5u"></script>
-<script src="charts.js?v=mvtgih5u"></script>
-<script src="extra.js?v=mvtgih5u"></script>
-<script src="story.js?v=mvtgih5u"></script>
-<script src="app.js?v=mvtgih5u"></script>
+<script>window.STATIC_SITE = true; window.BUILD = 'mvth1f7m';</script>
+<script src="config.js?v=mvth1f7m"></script>
+<script src="i18n.js?v=mvth1f7m"></script>
+<script src="charts.js?v=mvth1f7m"></script>
+<script src="extra.js?v=mvth1f7m"></script>
+<script src="story.js?v=mvth1f7m"></script>
+<script src="app.js?v=mvth1f7m"></script>
 </body>
 </html>
