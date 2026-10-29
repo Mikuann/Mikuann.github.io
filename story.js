@@ -193,7 +193,7 @@ async function openStory() {
       <div><h3>Minutes d'écoute</h3><span class="s-num">${nf.format(minutes)}</span></div>
       <div><h3>Nouveaux artistes</h3><span class="s-num">${nf.format(o.newArtists)}</span></div>
     </div>` },
-    CFG.bestof && { song: song(0), burst: true, video: 'full', html: `${CFG.avatar ? `<img class="s-thanks-av" src="${esc(CFG.avatar)}" alt="">` : ''}<p class="s-kicker">Le best of de ${esc(OWNER)}${isAll() ? '' : ' ' + YEAR}</p><p class="s-mid">Merci pour tous ces bons moments</p><p class="s-sub">${CFG.bestofGames ? esc(CFG.bestofGames) + '… ' : ''}et <b>${nf.format(Math.round(o.hours))} h</b> de musique pour les accompagner. À l’année prochaine 💜</p>` },
+    CFG.bestof && { song: song(0), burst: true, video: 'full', html: `${CFG.moments?.length ? `<div class="s-polas">${CFG.moments.map(m => `<img src="${esc(m)}" alt="">`).join('')}</div>` : CFG.avatar ? `<img class="s-thanks-av" src="${esc(CFG.avatar)}" alt="">` : ''}<p class="s-kicker">Le best of de ${esc(OWNER)}${isAll() ? '' : ' ' + YEAR}</p><p class="s-mid">Merci pour tous ces bons moments</p><p class="s-sub">${CFG.bestofGames ? esc(CFG.bestofGames) + '… ' : ''}et <b>${nf.format(Math.round(o.hours))} h</b> de musique pour les accompagner. À l’année prochaine 💜</p>` },
   ].filter(Boolean);
   // Les dernières diapos passent le best of en fond (la dernière en plein écran)
   if (CFG.bestof) slides.slice(-3).forEach(s => { s.video = s.video || 'bg'; });

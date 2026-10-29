@@ -11,6 +11,7 @@ window.SITE_CONFIG = {
   bestof: 'video/bestof.mp4', // best of en fond des dernières diapos du récap (sans son)
   bestofPoster: 'video/bestof.jpg',
   bestofGames: 'Minecraft, Roblox, VRChat, ARC Raiders',
+  moments: ['img/moments/1.jpg', 'img/moments/2.jpg', 'img/moments/3.jpg', 'img/moments/4.jpg'], // photos de la diapo de remerciement
   lastfmUser: '',
   lastfmKey: '',
 };

@@ -397,3 +397,10 @@ tbody tr:hover { background: var(--panel-2); }
 .story.with-video .story-slide { text-shadow: 0 2px 18px rgba(0, 0, 0, .75); }
 .story.video-full .story-stage::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at center, rgba(14, 11, 20, .55), rgba(14, 11, 20, .1) 70%); }
 .s-thanks-av { width: clamp(72px, 12vw, 120px); height: clamp(72px, 12vw, 120px); border-radius: 50%; border: 3px solid var(--bg, var(--violet)); background: radial-gradient(circle at 50% 35%, #6d5a8a, #2a2038); box-shadow: 0 10px 40px rgba(0, 0, 0, .6); }
+/* Photos façon polaroïd sur la diapo de remerciement */
+.s-polas { display: flex; gap: clamp(6px, 1.5vw, 14px); margin-bottom: 6px; }
+.s-polas img { width: clamp(64px, 11vw, 120px); aspect-ratio: 1; object-fit: cover; background: #f4eefa; padding: 5px 5px 16px; border-radius: 3px; box-shadow: 0 10px 28px rgba(0, 0, 0, .55); transform: rotate(var(--r, -4deg)) translateY(var(--y, 0)); animation: pola-in .7s cubic-bezier(.2, .8, .2, 1) both; }
+.s-polas img:nth-child(2) { --r: 3deg; --y: 8px; animation-delay: .1s; }
+.s-polas img:nth-child(3) { --r: -2deg; --y: -4px; animation-delay: .2s; }
+.s-polas img:nth-child(4) { --r: 5deg; --y: 6px; animation-delay: .3s; }
+@keyframes pola-in { from { opacity: 0; transform: rotate(0) translateY(30px) scale(.8); } }
