@@ -510,3 +510,17 @@ tbody tr:hover { background: var(--panel-2); }
 .np-mini { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .08); }
 .np-mini i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--violet), var(--pink)); transition: width 1s linear; }
 @media (max-width: 520px) { .np-toast-art, .np-toast-art .cov { width: 76px; height: 76px; } .np-toast-t b { font-size: 18px; } }
+
+/* Bouton « Voir le récap » : reflet qui balaie le bouton + halo qui respire, pour montrer qu'il se clique */
+.btn-play { position: relative; overflow: hidden; isolation: isolate; box-shadow: 0 0 0 0 color-mix(in srgb, var(--pink) 55%, transparent), 0 8px 26px color-mix(in srgb, var(--violet) 35%, transparent); animation: play-glow 2.6s ease-in-out infinite; transition: transform .2s cubic-bezier(.2, .8, .2, 1), background .2s; }
+.btn-play::after { content: ""; position: absolute; z-index: -1; top: -20%; bottom: -20%; left: -60%; width: 45%; background: linear-gradient(100deg, transparent 0%, color-mix(in srgb, var(--violet) 0%, transparent) 15%, color-mix(in srgb, var(--pink) 75%, transparent) 45%, color-mix(in srgb, var(--violet) 65%, transparent) 55%, transparent 85%); transform: skewX(-20deg); animation: play-shine 3.2s ease-in-out infinite; pointer-events: none; }
+.btn-play::before { content: ""; position: absolute; z-index: -2; inset: 0; border-radius: inherit; background: linear-gradient(110deg, #fff 30%, color-mix(in srgb, var(--pink) 30%, #fff) 50%, #fff 70%); background-size: 250% 100%; animation: play-sheen 3.2s ease-in-out infinite; }
+.btn-play:hover { transform: translateY(-2px) scale(1.04); }
+.btn-play:hover::after { animation-duration: 1.2s; }
+.btn-play:active { transform: scale(.98); }
+.btn-play:focus-visible { outline: 3px solid var(--violet); outline-offset: 3px; }
+@keyframes play-shine { 0%, 55% { left: -60%; } 100% { left: 130%; } }
+@keyframes play-sheen { 0%, 55% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@keyframes play-glow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--pink) 45%, transparent), 0 8px 26px color-mix(in srgb, var(--violet) 30%, transparent); } 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--pink) 0%, transparent), 0 8px 34px color-mix(in srgb, var(--violet) 55%, transparent); } }
+/* Animations réduites (réglage Windows) : on garde juste un reflet plus lent, sans halo qui pulse */
+@media (prefers-reduced-motion: reduce) { .btn-play { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--pink) 35%, transparent), 0 8px 30px color-mix(in srgb, var(--violet) 45%, transparent); } .btn-play::after { animation-duration: 4.5s; } .btn-play::before { animation-duration: 4.5s; } }
