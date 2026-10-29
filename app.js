@@ -34,7 +34,7 @@ const OWNER = CFG.owner || 'moi';
 const STATIC = !!window.STATIC_SITE;
 const fnv = s => { let h = 0x811c9dc5; for (const c of String(s)) { h ^= c.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); };
 const files = new Map();
-const fetchJson = url => { if (!files.has(url)) files.set(url, fetch(url).then(r => r.ok ? r.json() : Promise.reject(new Error('Erreur ' + r.status)))); return files.get(url); };
+const fetchJson = url => { if (!files.has(url)) files.set(url, fetch(window.BUILD ? `${url}?v=${window.BUILD}` : url).then(r => r.ok ? r.json() : Promise.reject(new Error('Erreur ' + r.status)))); return files.get(url); };
 function staticCall(name, params) {
   if (name === 'meta') return fetchJson('data/meta.json');
   const base = `data/${YEAR}/`;
