@@ -239,7 +239,6 @@ const pages = {
         <p class="lede">Du ${dateFr(o.first)} au ${dateFr(o.last)}, soit <b>${n1.format(o.hours / 24)} jours</b> complets, ou <b>${n1.format(o.hours / o.span)} h par jour</b> en moyenne.${c ? ` ${delta(c.cur.hours, c.prev.hours, vs)}.` : ''}${o.ageGuess ? ` Âge musical estimé : <b>${o.ageGuess} ans</b>.` : ''}</p>
         <a class="btn btn-play" href="#/recap">▶ Voir le récap ${isAll() ? '' : YEAR}</a>
         ${CFG.portrait ? `<div class="hero-strip" aria-hidden="true">${o.topTracks.slice(0, 5).map(t => cover(pic.track(t.key))).join('')}<small>son top 5 du moment</small></div>` : ''}
-        ${CFG.portrait && CFG.portraitCredit ? `<span class="credit">Art : ${esc(CFG.portraitCredit)}</span>` : ''}
       </div>
       <div class="kpis">
         ${kpi('Écoutes', nf.format(o.plays), c ? delta(c.cur.plays, c.prev.plays, vs) : 'lectures de 30 s ou plus', '#/titres')}
