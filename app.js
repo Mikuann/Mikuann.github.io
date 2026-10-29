@@ -230,7 +230,7 @@ const pages = {
     const o = await api('overview');
     const c = o.compare;
     const vs = c ? (c.cutoff === '12-31' ? `${c.year}` : `${c.year} à la même date`) : '';
-    main.innerHTML = `
+    main.innerHTML = `<div class="${Guestbook.on ? 'home' : 'home-solo'}"><div class="home-main">
       <div class="hero">
         <div class="hero-bg" style="background-image:url('${esc(CFG.banner || pic.artist(o.topArtists[0]?.name))}'), url('${esc(pic.artist(o.topArtists[0]?.name))}')"></div>
         ${CFG.portrait ? `<img class="hero-portrait" src="${esc(CFG.portrait)}" alt="" data-optional>` : `<div class="hero-covers" aria-hidden="true">${o.topTracks.slice(0, 5).map(t => cover(pic.track(t.key))).join('')}</div>`}
@@ -273,7 +273,8 @@ const pages = {
       ${CFG.photos?.length ? `<h2 class="section-t">Les moments de ${esc(OWNER)}</h2>
       <div class="gallery">${CFG.photos.map((p, i) => `<a href="${esc(p)}" data-i="${i}" aria-label="Agrandir la photo ${i + 1}"><img src="${esc(p)}" alt="" loading="lazy" data-optional></a>`).join('')}</div>` : ''}
       <h2 class="section-t">Le mur des pochettes</h2>
-      <div class="wall">${o.wall.map(a => `<a href="${aAlbum(a.artist, a.name)}" title="${esc(a.name)} · ${esc(a.artist)}">${cover(pic.album(a.artist, a.name))}<span>${esc(a.name)}<br>${fmtH(a.hours)}</span></a>`).join('')}</div>`;
+      <div class="wall">${o.wall.map(a => `<a href="${aAlbum(a.artist, a.name)}" title="${esc(a.name)} · ${esc(a.artist)}">${cover(pic.album(a.artist, a.name))}<span>${esc(a.name)}<br>${fmtH(a.hours)}</span></a>`).join('')}</div>
+      </div>${Guestbook.on ? '<aside class="gb" id="gb" aria-label="Livre d’or"></aside>' : ''}</div>`;
     if (o.artistMonths) {
       chart('c-stream', el => streamgraph(el, o.artistMonths, monthItems(o.months, null).length));
       chart('c-bump', el => bumpChart(el, o.artistMonths, monthItems(o.months, null).length));
@@ -606,6 +607,7 @@ async function render() {
     else await (pages[route] || EXTRA_PAGES[route] || pages[''])(...args);
     headPhoto(route, args);
     watchBanners();
+    Guestbook.mount(main.querySelector('#gb'));
     redraws.forEach(f => f());
     if (route === 'recap') openStory();
     document.title = (main.querySelector('h1')?.textContent || 'Stats') + ` · Les stats Spotify de ${OWNER}`;

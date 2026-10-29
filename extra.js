@@ -342,6 +342,104 @@ const NowPlaying = {
   },
 };
 
+// ---------- Livre d'or : petits messages des visiteurs (colonne de droite de l'accueil) ----------
+// Stockés dans Firestore (Firebase) via son API REST : lecture publique, création seulement (les règles limitent la taille).
+// Les messages se suppriment depuis la console Firebase.
+const GB_EMOJI = ['💜', '🔥', '😂', '🎧', '👀', '✨'];
+const GB_COOLDOWN = 60e3;
+const Guestbook = {
+  el: null, list: [], timer: 0, emoji: GB_EMOJI[0], sending: false,
+  get on() { return !!CFG.comments?.projectId; },
+  base() { return `https://firestore.googleapis.com/v1/projects/${CFG.comments.projectId}/databases/(default)/documents`; },
+  async req(path, body) {
+    const r = await fetch(`${this.base()}${path}${CFG.comments.apiKey ? `?key=${CFG.comments.apiKey}` : ''}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  },
+  async fetchAll() {
+    const rows = await this.req(':runQuery', { structuredQuery: { from: [{ collectionId: 'comments' }], orderBy: [{ field: { fieldPath: 'at' }, direction: 'DESCENDING' }], limit: 40 } });
+    return rows.filter(r => r.document).map(({ document: d }) => ({
+      id: d.name.split('/').pop(), name: d.fields.name?.stringValue || '?', text: d.fields.text?.stringValue || '',
+      emoji: d.fields.emoji?.stringValue || '', at: Date.parse(d.fields.at?.timestampValue) || Date.now(),
+    }));
+  },
+  send(name, text, emoji) {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return this.req(':commit', { writes: [{
+      update: { name: `projects/${CFG.comments.projectId}/databases/(default)/documents/comments/${id}`, fields: { name: { stringValue: name }, text: { stringValue: text }, emoji: { stringValue: emoji } } },
+      currentDocument: { exists: false },
+      updateTransforms: [{ fieldPath: 'at', setToServerValue: 'REQUEST_TIME' }],
+    }] });
+  },
+  store(k, v) { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch { return null; } },
+  ago(ms) {
+    const m = Math.round((Date.now() - ms) / 60e3);
+    if (m < 1) return 'à l’instant';
+    if (m < 60) return `il y a ${m} min`;
+    if (m < 24 * 60) return `il y a ${Math.round(m / 60)} h`;
+    if (m < 7 * 24 * 60) return `il y a ${Math.round(m / 1440)} j`;
+    return new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: new Date(ms).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+  },
+  hue: s => [...s].reduce((h, c) => (h * 31 + c.codePointAt(0)) % 360, 7),
+  // Appelé à chaque affichage de page : branche le panneau s'il est là, arrête le rafraîchissement sinon
+  mount(el) {
+    clearInterval(this.timer);
+    this.el = el;
+    if (!el || !this.on) return;
+    el.innerHTML = `<div class="gb-head"><h2>Le livre d’or</h2><p>Laisse un petit mot à ${esc(OWNER)}</p></div>
+      <form class="gb-form" autocomplete="off">
+        <input class="gb-name" name="name" maxlength="24" placeholder="Ton pseudo" aria-label="Ton pseudo" required>
+        <div class="gb-text-w"><textarea class="gb-text" name="text" maxlength="280" rows="3" placeholder="Ton message…" aria-label="Ton message" required></textarea><span class="gb-count">280</span></div>
+        <input class="gb-hp" name="site" tabindex="-1" aria-hidden="true">
+        <div class="gb-row"><div class="gb-emo" role="radiogroup" aria-label="Humeur">${GB_EMOJI.map(e => `<button type="button" role="radio" aria-checked="${e === this.emoji}" data-e="${e}">${e}</button>`).join('')}</div>
+        <button class="btn gb-send" type="submit">Envoyer</button></div>
+        <p class="gb-msg" role="status"></p>
+      </form>
+      <ol class="gb-list" aria-live="polite"><li class="gb-empty">Chargement des messages…</li></ol>`;
+    const f = $('.gb-form', el);
+    f.name.value = this.store('gbName') || '';
+    f.text.addEventListener('input', () => { $('.gb-count', el).textContent = 280 - f.text.value.length; });
+    $('.gb-emo', el).addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      this.emoji = b.dataset.e;
+      $('.gb-emo', el).querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x === b));
+    });
+    f.addEventListener('submit', e => { e.preventDefault(); this.submit(f); });
+    this.refresh();
+    this.timer = setInterval(() => { if (!document.hidden) this.refresh(); }, 60e3);
+  },
+  async refresh() {
+    const el = this.el;
+    try { this.list = await this.fetchAll(); } catch { if (el === this.el && !this.list.length) $('.gb-list', el).innerHTML = '<li class="gb-empty">Messages indisponibles pour le moment.</li>'; return; }
+    if (el === this.el) this.draw();
+  },
+  draw() {
+    const ul = $('.gb-list', this.el);
+    ul.innerHTML = this.list.length ? this.list.map(c => `<li class="${c.mine ? 'mine' : ''}"><span class="gb-av" style="--h:${this.hue(c.name)}" aria-hidden="true">${esc([...c.name][0].toUpperCase())}</span>
+      <div class="gb-b"><div class="gb-meta"><b>${esc(c.name)}</b>${c.emoji ? `<span>${esc(c.emoji)}</span>` : ''}<time>${this.ago(c.at)}</time></div><p>${esc(c.text)}</p></div></li>`).join('')
+      : '<li class="gb-empty">Aucun message pour l’instant. Sois le premier !</li>';
+  },
+  async submit(f) {
+    const msg = $('.gb-msg', this.el), say = (t, bad) => { msg.textContent = t; msg.classList.toggle('bad', !!bad); };
+    const name = f.name.value.trim().replace(/\s+/g, ' '), text = f.text.value.trim();
+    if (f.site.value || this.sending) return; // champ piège rempli = robot
+    if (!name || !text) return say('Il faut un pseudo et un message.', true);
+    if (npNorm(name) === npNorm(OWNER)) return say(`Ce pseudo est réservé à ${OWNER}.`, true);
+    const wait = +(this.store('gbLast') || 0) + GB_COOLDOWN - Date.now();
+    if (wait > 0) return say(`Attends encore ${Math.ceil(wait / 1000)} s avant d’envoyer un autre message.`, true);
+    this.sending = true; f.querySelector('.gb-send').disabled = true; say('Envoi…');
+    try {
+      await this.send(name, text, this.emoji);
+      this.store('gbName', name); this.store('gbLast', Date.now());
+      this.list.unshift({ id: 'local', name, text, emoji: this.emoji, at: Date.now(), mine: true });
+      this.draw();
+      f.text.value = ''; $('.gb-count', this.el).textContent = 280;
+      say('Merci, ton message est publié !');
+    } catch { say('Oups, l’envoi a raté. Réessaie dans un moment.', true); }
+    this.sending = false; f.querySelector('.gb-send').disabled = false;
+  },
+};
+
 // ---------- Pages en plus ----------
 const mainstreamWord = v => v >= 70 ? 'très grand public' : v >= 55 ? 'plutôt grand public' : v >= 40 ? 'entre les deux' : 'plutôt pointu';
 const EXTRA_PAGES = {

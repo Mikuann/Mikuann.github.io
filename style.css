@@ -524,3 +524,49 @@ tbody tr:hover { background: var(--panel-2); }
 @keyframes play-glow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--pink) 45%, transparent), 0 8px 26px color-mix(in srgb, var(--violet) 30%, transparent); } 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--pink) 0%, transparent), 0 8px 34px color-mix(in srgb, var(--violet) 55%, transparent); } }
 /* Animations réduites (réglage Windows) : on garde juste un reflet plus lent, sans halo qui pulse */
 @media (prefers-reduced-motion: reduce) { .btn-play { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--pink) 35%, transparent), 0 8px 30px color-mix(in srgb, var(--violet) 45%, transparent); } .btn-play::after { animation-duration: 4.5s; } .btn-play::before { animation-duration: 4.5s; } }
+
+/* Livre d'or : colonne de droite de l'accueil (en dessous des chiffres sur petit écran) */
+.home-main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.wrap:has(> .home) { max-width: 1600px; }
+.home { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+.gb { position: sticky; top: 132px; max-height: calc(100vh - 148px); display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: var(--radius); background: linear-gradient(170deg, color-mix(in oklab, var(--violet) 14%, var(--panel)), var(--panel) 45%); border: 1px solid color-mix(in oklab, var(--violet) 26%, var(--line)); box-shadow: 0 18px 40px rgba(0, 0, 0, .3); }
+.gb-head h2 { margin: 0; font: 800 22px/1.1 var(--font-display); letter-spacing: -.02em; }
+.gb-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.gb-form { display: flex; flex-direction: column; gap: 8px; }
+.gb-form input, .gb-form textarea { width: 100%; font: 500 14px/1.4 var(--font-body); color: var(--fg); background: var(--stage); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; }
+.gb-form textarea { resize: vertical; min-height: 74px; max-height: 200px; padding-bottom: 20px; }
+.gb-form input:focus-visible, .gb-form textarea:focus-visible { outline: 2px solid var(--violet); outline-offset: 0; border-color: transparent; }
+.gb-form ::placeholder { color: color-mix(in oklab, var(--muted) 75%, transparent); }
+.gb-text-w { position: relative; }
+.gb-count { position: absolute; right: 10px; bottom: 7px; font-size: 11px; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.gb-hp { position: absolute !important; left: -9999px; width: 1px !important; height: 1px; opacity: 0; }
+.gb-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gb-emo { display: flex; gap: 2px; }
+.gb-emo button { width: 30px; height: 30px; border-radius: 50%; border: 0; background: none; font-size: 16px; cursor: pointer; opacity: .45; filter: grayscale(.6); transition: opacity .15s, transform .15s, background .15s; }
+.gb-emo button:hover { opacity: .85; filter: none; }
+.gb-emo button[aria-checked="true"] { opacity: 1; filter: none; background: color-mix(in oklab, var(--violet) 28%, transparent); transform: scale(1.08); }
+.gb-send { background: var(--fg); color: var(--ink); border: 0; padding: 8px 18px; }
+.gb-send:hover { background: #fff; }
+.gb-send:disabled { opacity: .6; cursor: wait; }
+.gb-msg { margin: 0; min-height: 0; font-size: 13px; color: var(--good); }
+.gb-msg:empty { display: none; }
+.gb-msg.bad { color: var(--bad); }
+.gb-list { list-style: none; margin: 0 -6px 0 0; padding: 0 6px 0 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.gb-list li { display: flex; gap: 10px; align-items: flex-start; }
+.gb-av { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font: 800 15px var(--font-display); color: #1a1424; background: hsl(var(--h) 70% 76%); }
+.gb-b { min-width: 0; flex: 1; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px 14px 14px 14px; padding: 8px 12px; }
+.gb-list li.mine .gb-b { border-color: color-mix(in oklab, var(--violet) 50%, var(--line)); }
+.gb-meta { display: flex; align-items: baseline; gap: 6px; font-size: 13px; }
+.gb-meta b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-meta time { margin-left: auto; flex: none; color: var(--muted); font-size: 12px; }
+.gb-b p { margin: 2px 0 0; font-size: 14px; overflow-wrap: anywhere; white-space: pre-line; }
+.gb-list .gb-empty { display: block; color: var(--muted); font-size: 14px; text-align: center; padding: 14px 0; }
+@media (max-width: 1100px) {
+  .home { display: flex; flex-direction: column; gap: 22px; }
+  .home-main { display: contents; }
+  .home-main > .hero { order: -2; }
+  .home-main > .kpis, .home > .gb { order: -1; }
+  .gb { position: static; max-height: none; }
+  .gb-list { max-height: 420px; }
+}
+body:has(.home) :is(.top-in, .tabs, .foot) { max-width: 1600px; }
